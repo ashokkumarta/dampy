@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.6.2" />
+<title>dampy.Assets API documentation</title>
+<meta name="description" content="" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase;cursor:pointer}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>dampy.Assets</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python"># ashokkumar.ta@gmail.com / 24-May-2019
+
+import requests, json
+from requests.auth import HTTPBasicAuth
+import logging
+
+from dampy.Env import Env
+from dampy.Util import *
+
+class Assets:
+    &#39;&#39;&#39;Class abstracting the DAM operations &#39;&#39;&#39;
+
+
+    CFG = {
+        &#39;assets_key&#39;: &#39;hits&#39;,
+        &#39;path_key&#39;: &#39;jcr:path&#39;
+    }
+
+    URL = {
+        &#39;list&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=jcr:path&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;metadata_suffix&#39;: &#39;/jcr:content.&#39;,
+        &#39;metadata_type&#39;: &#39;.json&#39;,
+        &#34;Activate&#34;: &#34;/bin/replicate.json&#34;,
+        &#34;Deactivate&#34;: &#34;/bin/replicate.json&#34;,
+        &#34;deletePage&#34;: &#34;/bin/wcmcommand&#34;
+    }
+
+    DATA = {
+        &#34;CREATE_FOLDER&#34; : &#34;{&#39;./jcr:primaryType&#39;: &#39;sling:OrderedFolder&#39;, \
+            &#39;./jcr:content/jcr:primaryType&#39;: &#39;nt:unstructured&#39;, \
+            &#39;/jcr:content/jcr:title&#39;:&#39;$name&#39;, \
+            &#39;:name&#39;:&#39;$name&#39; }&#34;
+
+    }
+
+    def __init__(self, conn):
+        &#39;&#39;&#39;
+        Initialize an Assets instance with a AEM handle
+        &#39;&#39;&#39;
+        self.conn = conn
+
+
+    def list(self, path=&#39;/content/dam&#39;):
+        &#39;&#39;&#39;
+        Get the list of all assets under the path given as parameter
+        &#39;&#39;&#39;
+    
+        asset_list = []
+        logging.debug(Assets.URL[&#39;list&#39;])
+        url = Assets.URL[&#39;list&#39;] + path
+        response = self.conn.get(url)
+        if response.success:
+            for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                asset_list.append(e[Assets.CFG[&#39;path_key&#39;]])    
+        else:
+            logging.error(&#39;Error getting the assets list&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+        return asset_list
+
+    def metadata(self, asset_path, level=1):
+        &#39;&#39;&#39;
+        Get the metadata of the asset. Level specifies for nesting levels for metadata fetch 
+        &#39;&#39;&#39;
+        asset_metadata = {}
+        url = asset_path + Assets.URL[&#39;metadata_suffix&#39;] + str(level) + Assets.URL[&#39;metadata_type&#39;]
+        response = self.conn.get(url)
+        if response.success:
+            asset_metadata = response.data
+        else:
+            logging.error(&#39;Error getting the asset metadata&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty metadata returned&#39;)
+        return asset_metadata
+
+
+    def _download(self, asset, env, retain_dam_path=True):
+        &#39;&#39;&#39;
+        Downlods the asset to the directory represented by the env object
+        &#39;&#39;&#39;
+        logging.debug(&#34;Downloading asset : &#34; + str(asset))
+        response = self.conn.rawget(asset)
+        env.store(asset, response.data.content, retain_dam_path)
+        return True
+
+    def downloadAsset(self, asset, dir=&#39;download&#39;):
+        &#39;&#39;&#39;
+        Downlods the asset to the dir
+        &#39;&#39;&#39;
+        env = Env(dir)
+        return self._download(asset, env, False)
+
+    def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;):
+        &#39;&#39;&#39;
+        Downlods all assets under the mentioned path to the dir
+        &#39;&#39;&#39;
+        asset_list = self.list(path)
+        logging.debug(&#34;Asset list : &#34;+str(asset_list))
+        overall_status = True
+        if asset_list:
+            env = Env(dir)
+            for asset in asset_list:
+                status = self._download(asset, env)
+                overall_status &amp;= status
+        return overall_status
+
+    def createFolder(self, path, ignore_error = False):
+        &#39;&#39;&#39;
+        Creates the folder specified in path in DAM
+        &#39;&#39;&#39;
+
+        parent, name = splitPath(path)
+        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+
+        logging.debug(&#39;URL - &#39;+ path)
+        logging.debug(&#39;Data - &#39;+ data)
+
+        response = self.conn.post(path, data = data)            
+
+        if not (ignore_error or response.success):
+            logging.error(&#39;Error creating folder&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Check if the folder already exists&#39;)
+        return response.success
+
+    def uploadAsset(self, file, path=&#39;/content/dam&#39;):
+        &#39;&#39;&#39;
+        Uploads the single file to DAM at the specified path
+        &#39;&#39;&#39;
+
+        path = trimPath(path)
+        
+        self.createFolder(path, True)
+        
+        url = path + &#39;.createasset.html&#39;
+        logging.debug(&#39;URL - &#39;+ path)
+        logging.debug(&#39;file - &#39;+ file)
+
+        files = {&#39;file&#39;: open(file, &#39;rb&#39;)}
+        response = self.conn.post(url, files = files)            
+        if not response.success:
+            logging.error(&#39;Error getting uploading file&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+    def uploadFolder(self, dir=&#39;upload&#39;):
+        &#39;&#39;&#39;
+        Upload all the assets under the dir parameter. 
+        Folder structure under dir replicated onto DAM
+        Folder structure not starting with /content/dam/ pushed under /content/dam  
+        &#39;&#39;&#39;
+       
+        env = Env(dir)
+        path_map = cleansePaths(dir, env.listFiles() )
+        for file in path_map:
+            logging.debug(&#39;Uploading file - &#39;+ file)
+            self.uploadAsset(file, path_map[file])
+
+
+    def activate(self, path, force=&#39;true&#39;):
+        &#39;&#39;&#39;
+        Activate the asset specified by the path parameter
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;Activate&#39;]
+        data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error Activating the asset&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+    def deactivate(self, path, force=&#39;true&#39;):
+        &#39;&#39;&#39;
+        Deactivate the asset specified by the path parameter
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;Deactivate&#39;]
+        data = {&#39;cmd&#39;: &#39;Deactivate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error Deactivating the asset&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+
+    def delete(self, path, force=&#39;true&#39;):
+        &#39;&#39;&#39;
+        Delete the asset specified by the path parameter
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;deletePage&#39;]
+        data = {&#39;cmd&#39;: &#39;deletePage&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error Deactivating the asset&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="dampy.Assets.Assets"><code class="flex name class">
+<span>class <span class="ident">Assets</span></span>
+<span>(</span><span>conn)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Class abstracting the DAM operations </p>
+<p>Initialize an Assets instance with a AEM handle</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class Assets:
+    &#39;&#39;&#39;Class abstracting the DAM operations &#39;&#39;&#39;
+
+
+    CFG = {
+        &#39;assets_key&#39;: &#39;hits&#39;,
+        &#39;path_key&#39;: &#39;jcr:path&#39;
+    }
+
+    URL = {
+        &#39;list&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=jcr:path&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;metadata_suffix&#39;: &#39;/jcr:content.&#39;,
+        &#39;metadata_type&#39;: &#39;.json&#39;,
+        &#34;Activate&#34;: &#34;/bin/replicate.json&#34;,
+        &#34;Deactivate&#34;: &#34;/bin/replicate.json&#34;,
+        &#34;deletePage&#34;: &#34;/bin/wcmcommand&#34;
+    }
+
+    DATA = {
+        &#34;CREATE_FOLDER&#34; : &#34;{&#39;./jcr:primaryType&#39;: &#39;sling:OrderedFolder&#39;, \
+            &#39;./jcr:content/jcr:primaryType&#39;: &#39;nt:unstructured&#39;, \
+            &#39;/jcr:content/jcr:title&#39;:&#39;$name&#39;, \
+            &#39;:name&#39;:&#39;$name&#39; }&#34;
+
+    }
+
+    def __init__(self, conn):
+        &#39;&#39;&#39;
+        Initialize an Assets instance with a AEM handle
+        &#39;&#39;&#39;
+        self.conn = conn
+
+
+    def list(self, path=&#39;/content/dam&#39;):
+        &#39;&#39;&#39;
+        Get the list of all assets under the path given as parameter
+        &#39;&#39;&#39;
+    
+        asset_list = []
+        logging.debug(Assets.URL[&#39;list&#39;])
+        url = Assets.URL[&#39;list&#39;] + path
+        response = self.conn.get(url)
+        if response.success:
+            for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                asset_list.append(e[Assets.CFG[&#39;path_key&#39;]])    
+        else:
+            logging.error(&#39;Error getting the assets list&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+        return asset_list
+
+    def metadata(self, asset_path, level=1):
+        &#39;&#39;&#39;
+        Get the metadata of the asset. Level specifies for nesting levels for metadata fetch 
+        &#39;&#39;&#39;
+        asset_metadata = {}
+        url = asset_path + Assets.URL[&#39;metadata_suffix&#39;] + str(level) + Assets.URL[&#39;metadata_type&#39;]
+        response = self.conn.get(url)
+        if response.success:
+            asset_metadata = response.data
+        else:
+            logging.error(&#39;Error getting the asset metadata&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty metadata returned&#39;)
+        return asset_metadata
+
+
+    def _download(self, asset, env, retain_dam_path=True):
+        &#39;&#39;&#39;
+        Downlods the asset to the directory represented by the env object
+        &#39;&#39;&#39;
+        logging.debug(&#34;Downloading asset : &#34; + str(asset))
+        response = self.conn.rawget(asset)
+        env.store(asset, response.data.content, retain_dam_path)
+        return True
+
+    def downloadAsset(self, asset, dir=&#39;download&#39;):
+        &#39;&#39;&#39;
+        Downlods the asset to the dir
+        &#39;&#39;&#39;
+        env = Env(dir)
+        return self._download(asset, env, False)
+
+    def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;):
+        &#39;&#39;&#39;
+        Downlods all assets under the mentioned path to the dir
+        &#39;&#39;&#39;
+        asset_list = self.list(path)
+        logging.debug(&#34;Asset list : &#34;+str(asset_list))
+        overall_status = True
+        if asset_list:
+            env = Env(dir)
+            for asset in asset_list:
+                status = self._download(asset, env)
+                overall_status &amp;= status
+        return overall_status
+
+    def createFolder(self, path, ignore_error = False):
+        &#39;&#39;&#39;
+        Creates the folder specified in path in DAM
+        &#39;&#39;&#39;
+
+        parent, name = splitPath(path)
+        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+
+        logging.debug(&#39;URL - &#39;+ path)
+        logging.debug(&#39;Data - &#39;+ data)
+
+        response = self.conn.post(path, data = data)            
+
+        if not (ignore_error or response.success):
+            logging.error(&#39;Error creating folder&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Check if the folder already exists&#39;)
+        return response.success
+
+    def uploadAsset(self, file, path=&#39;/content/dam&#39;):
+        &#39;&#39;&#39;
+        Uploads the single file to DAM at the specified path
+        &#39;&#39;&#39;
+
+        path = trimPath(path)
+        
+        self.createFolder(path, True)
+        
+        url = path + &#39;.createasset.html&#39;
+        logging.debug(&#39;URL - &#39;+ path)
+        logging.debug(&#39;file - &#39;+ file)
+
+        files = {&#39;file&#39;: open(file, &#39;rb&#39;)}
+        response = self.conn.post(url, files = files)            
+        if not response.success:
+            logging.error(&#39;Error getting uploading file&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+    def uploadFolder(self, dir=&#39;upload&#39;):
+        &#39;&#39;&#39;
+        Upload all the assets under the dir parameter. 
+        Folder structure under dir replicated onto DAM
+        Folder structure not starting with /content/dam/ pushed under /content/dam  
+        &#39;&#39;&#39;
+       
+        env = Env(dir)
+        path_map = cleansePaths(dir, env.listFiles() )
+        for file in path_map:
+            logging.debug(&#39;Uploading file - &#39;+ file)
+            self.uploadAsset(file, path_map[file])
+
+
+    def activate(self, path, force=&#39;true&#39;):
+        &#39;&#39;&#39;
+        Activate the asset specified by the path parameter
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;Activate&#39;]
+        data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error Activating the asset&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+    def deactivate(self, path, force=&#39;true&#39;):
+        &#39;&#39;&#39;
+        Deactivate the asset specified by the path parameter
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;Deactivate&#39;]
+        data = {&#39;cmd&#39;: &#39;Deactivate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error Deactivating the asset&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+
+    def delete(self, path, force=&#39;true&#39;):
+        &#39;&#39;&#39;
+        Delete the asset specified by the path parameter
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;deletePage&#39;]
+        data = {&#39;cmd&#39;: &#39;deletePage&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error Deactivating the asset&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="dampy.Assets.Assets.CFG"><code class="name">var <span class="ident">CFG</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="dampy.Assets.Assets.DATA"><code class="name">var <span class="ident">DATA</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="dampy.Assets.Assets.URL"><code class="name">var <span class="ident">URL</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dampy.Assets.Assets.activate"><code class="name flex">
+<span>def <span class="ident">activate</span></span>(<span>self, path, force='true')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Activate the asset specified by the path parameter</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def activate(self, path, force=&#39;true&#39;):
+    &#39;&#39;&#39;
+    Activate the asset specified by the path parameter
+    &#39;&#39;&#39;
+
+    url = Assets.URL[&#39;Activate&#39;]
+    data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+    logging.debug(&#39;URL - &#39;+ url)
+    logging.debug(&#39;Data - &#39;+ str(data))
+
+    response = self.conn.post(url, data = data)            
+
+    if not response.success:
+        logging.error(&#39;Error Activating the asset&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+    return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.createFolder"><code class="name flex">
+<span>def <span class="ident">createFolder</span></span>(<span>self, path, ignore_error=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Creates the folder specified in path in DAM</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def createFolder(self, path, ignore_error = False):
+    &#39;&#39;&#39;
+    Creates the folder specified in path in DAM
+    &#39;&#39;&#39;
+
+    parent, name = splitPath(path)
+    data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+
+    logging.debug(&#39;URL - &#39;+ path)
+    logging.debug(&#39;Data - &#39;+ data)
+
+    response = self.conn.post(path, data = data)            
+
+    if not (ignore_error or response.success):
+        logging.error(&#39;Error creating folder&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Check if the folder already exists&#39;)
+    return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.deactivate"><code class="name flex">
+<span>def <span class="ident">deactivate</span></span>(<span>self, path, force='true')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Deactivate the asset specified by the path parameter</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def deactivate(self, path, force=&#39;true&#39;):
+    &#39;&#39;&#39;
+    Deactivate the asset specified by the path parameter
+    &#39;&#39;&#39;
+
+    url = Assets.URL[&#39;Deactivate&#39;]
+    data = {&#39;cmd&#39;: &#39;Deactivate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+    logging.debug(&#39;URL - &#39;+ url)
+    logging.debug(&#39;Data - &#39;+ str(data))
+
+    response = self.conn.post(url, data = data)            
+
+    if not response.success:
+        logging.error(&#39;Error Deactivating the asset&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+    return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.delete"><code class="name flex">
+<span>def <span class="ident">delete</span></span>(<span>self, path, force='true')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Delete the asset specified by the path parameter</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def delete(self, path, force=&#39;true&#39;):
+    &#39;&#39;&#39;
+    Delete the asset specified by the path parameter
+    &#39;&#39;&#39;
+
+    url = Assets.URL[&#39;deletePage&#39;]
+    data = {&#39;cmd&#39;: &#39;deletePage&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
+
+    logging.debug(&#39;URL - &#39;+ url)
+    logging.debug(&#39;Data - &#39;+ str(data))
+
+    response = self.conn.post(url, data = data)            
+
+    if not response.success:
+        logging.error(&#39;Error Deactivating the asset&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+    return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.downloadAsset"><code class="name flex">
+<span>def <span class="ident">downloadAsset</span></span>(<span>self, asset, dir='download')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Downlods the asset to the dir</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def downloadAsset(self, asset, dir=&#39;download&#39;):
+    &#39;&#39;&#39;
+    Downlods the asset to the dir
+    &#39;&#39;&#39;
+    env = Env(dir)
+    return self._download(asset, env, False)</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.downloadFolder"><code class="name flex">
+<span>def <span class="ident">downloadFolder</span></span>(<span>self, path='/content/dam', dir='download')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Downlods all assets under the mentioned path to the dir</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;):
+    &#39;&#39;&#39;
+    Downlods all assets under the mentioned path to the dir
+    &#39;&#39;&#39;
+    asset_list = self.list(path)
+    logging.debug(&#34;Asset list : &#34;+str(asset_list))
+    overall_status = True
+    if asset_list:
+        env = Env(dir)
+        for asset in asset_list:
+            status = self._download(asset, env)
+            overall_status &amp;= status
+    return overall_status</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.list"><code class="name flex">
+<span>def <span class="ident">list</span></span>(<span>self, path='/content/dam')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Get the list of all assets under the path given as parameter</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def list(self, path=&#39;/content/dam&#39;):
+    &#39;&#39;&#39;
+    Get the list of all assets under the path given as parameter
+    &#39;&#39;&#39;
+
+    asset_list = []
+    logging.debug(Assets.URL[&#39;list&#39;])
+    url = Assets.URL[&#39;list&#39;] + path
+    response = self.conn.get(url)
+    if response.success:
+        for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+            asset_list.append(e[Assets.CFG[&#39;path_key&#39;]])    
+    else:
+        logging.error(&#39;Error getting the assets list&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Empty list returned&#39;)
+    return asset_list</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.metadata"><code class="name flex">
+<span>def <span class="ident">metadata</span></span>(<span>self, asset_path, level=1)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Get the metadata of the asset. Level specifies for nesting levels for metadata fetch</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def metadata(self, asset_path, level=1):
+    &#39;&#39;&#39;
+    Get the metadata of the asset. Level specifies for nesting levels for metadata fetch 
+    &#39;&#39;&#39;
+    asset_metadata = {}
+    url = asset_path + Assets.URL[&#39;metadata_suffix&#39;] + str(level) + Assets.URL[&#39;metadata_type&#39;]
+    response = self.conn.get(url)
+    if response.success:
+        asset_metadata = response.data
+    else:
+        logging.error(&#39;Error getting the asset metadata&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Empty metadata returned&#39;)
+    return asset_metadata</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.uploadAsset"><code class="name flex">
+<span>def <span class="ident">uploadAsset</span></span>(<span>self, file, path='/content/dam')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Uploads the single file to DAM at the specified path</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def uploadAsset(self, file, path=&#39;/content/dam&#39;):
+    &#39;&#39;&#39;
+    Uploads the single file to DAM at the specified path
+    &#39;&#39;&#39;
+
+    path = trimPath(path)
+    
+    self.createFolder(path, True)
+    
+    url = path + &#39;.createasset.html&#39;
+    logging.debug(&#39;URL - &#39;+ path)
+    logging.debug(&#39;file - &#39;+ file)
+
+    files = {&#39;file&#39;: open(file, &#39;rb&#39;)}
+    response = self.conn.post(url, files = files)            
+    if not response.success:
+        logging.error(&#39;Error getting uploading file&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+    return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.uploadFolder"><code class="name flex">
+<span>def <span class="ident">uploadFolder</span></span>(<span>self, dir='upload')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Upload all the assets under the dir parameter.
+Folder structure under dir replicated onto DAM
+Folder structure not starting with /content/dam/ pushed under /content/dam</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def uploadFolder(self, dir=&#39;upload&#39;):
+    &#39;&#39;&#39;
+    Upload all the assets under the dir parameter. 
+    Folder structure under dir replicated onto DAM
+    Folder structure not starting with /content/dam/ pushed under /content/dam  
+    &#39;&#39;&#39;
+   
+    env = Env(dir)
+    path_map = cleansePaths(dir, env.listFiles() )
+    for file in path_map:
+        logging.debug(&#39;Uploading file - &#39;+ file)
+        self.uploadAsset(file, path_map[file])</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="dampy" href="index.html">dampy</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="dampy.Assets.Assets" href="#dampy.Assets.Assets">Assets</a></code></h4>
+<ul class="two-column">
+<li><code><a title="dampy.Assets.Assets.CFG" href="#dampy.Assets.Assets.CFG">CFG</a></code></li>
+<li><code><a title="dampy.Assets.Assets.DATA" href="#dampy.Assets.Assets.DATA">DATA</a></code></li>
+<li><code><a title="dampy.Assets.Assets.URL" href="#dampy.Assets.Assets.URL">URL</a></code></li>
+<li><code><a title="dampy.Assets.Assets.activate" href="#dampy.Assets.Assets.activate">activate</a></code></li>
+<li><code><a title="dampy.Assets.Assets.createFolder" href="#dampy.Assets.Assets.createFolder">createFolder</a></code></li>
+<li><code><a title="dampy.Assets.Assets.deactivate" href="#dampy.Assets.Assets.deactivate">deactivate</a></code></li>
+<li><code><a title="dampy.Assets.Assets.delete" href="#dampy.Assets.Assets.delete">delete</a></code></li>
+<li><code><a title="dampy.Assets.Assets.downloadAsset" href="#dampy.Assets.Assets.downloadAsset">downloadAsset</a></code></li>
+<li><code><a title="dampy.Assets.Assets.downloadFolder" href="#dampy.Assets.Assets.downloadFolder">downloadFolder</a></code></li>
+<li><code><a title="dampy.Assets.Assets.list" href="#dampy.Assets.Assets.list">list</a></code></li>
+<li><code><a title="dampy.Assets.Assets.metadata" href="#dampy.Assets.Assets.metadata">metadata</a></code></li>
+<li><code><a title="dampy.Assets.Assets.uploadAsset" href="#dampy.Assets.Assets.uploadAsset">uploadAsset</a></code></li>
+<li><code><a title="dampy.Assets.Assets.uploadFolder" href="#dampy.Assets.Assets.uploadFolder">uploadFolder</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.6.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
