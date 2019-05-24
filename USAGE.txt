@@ -1,6 +1,4 @@
 # ashokkumar.ta@gmail.com / 24-May-2019
-import logging
-import json
 
 from dampy import AEM
 
@@ -19,7 +17,7 @@ if __name__== "__main__":
     # Get Metadata of an asset
     print ('Get Metadata of an asset')
     metadata = aem.dam.metadata('/content/dam/we-retail/en/products/apparel/shorts/Bahamas.jpg')
-    print(json.dumps(metadata))
+    print(metadata)
 
     # Download an asset to a local folder. By default gets downloaded to a folder named 'download'
     print ('Download an asset to a local folder')
