@@ -4,12 +4,25 @@ import os
 import logging
 
 class Env:
+    '''
+    Provides a handle to work with the local file system
+    Initialized with a directory which is the base under which reads and writes can be performed
+    '''
+
     def __init__(self, dir):
+        '''
+        Initialize an Env instance with a directory
+        '''
         if not dir:
             self.dir = '.'
         self.dir = str(dir)
     
     def _ensure(self, asset, retain_dam_path=True):
+        '''
+        Checks and creates the folders needed under the env directory to store an asset
+        and returns the full path reference for an asset
+        '''
+
         logging.debug("Dir : "+str(self.dir))
         logging.debug("asset : "+str(asset))
         logging.debug("asset : "+str(asset))
@@ -24,12 +37,19 @@ class Env:
         return full_path
 
     def store(self, asset, content, retain_dam_path=True):
+        '''
+        Stores the asset under the directory represented by this env
+        '''
         full_path = self._ensure(asset, retain_dam_path)
         f_out = open(full_path, 'wb')
         f_out.write(content)
         f_out.close()
 
     def listFiles(self):
+        '''
+        Returns list of all the files present under the directory represented by this env
+        '''
+
         files = []
         for r, d, f in os.walk(self.dir):
             for file in f:

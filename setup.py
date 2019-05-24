@@ -9,7 +9,7 @@ setup(
   author = 'Ashokkumar T.A',                  
   author_email = 'ashokkumar.ta@gmail.com',   
   url = 'https://github.com/ashokkumarta/dampy',   
-  download_url = 'https://github.com/ashokkumarta/dampy/archive/v0.2.tar.gz', 
+  download_url = 'https://github.com/ashokkumarta/dampy/archive/0.2.tar.gz', 
   keywords = ['AEM', 'DAM', 'Python tool', 'list', 'create', 'upload', 'download', 'activate', 'deactivate', 'delete'],   
   install_requires=[  
       'requests',          

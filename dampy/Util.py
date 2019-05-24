@@ -1,17 +1,32 @@
 # ashokkumar.ta@gmail.com / 24-May-2019
 
 def trimPath(path):
+    '''
+    Removes the trailing / from the path given
+    >>> trimPath('/content/dam/sample/')
+    /content/dam/sample
+    '''
     if path.endswith('/'):
         return path[:-1]
     return path
 
 def splitPath(path):
+    '''
+    Splits the path given into parent path and file name
+    >>> trimPath('/content/dam/sample/test.png')
+    ('/content/dam/sample', 'test.png')
+    '''
     #Get path & name of the asset
     name = path[path.rindex('/')+1:]
     parent = path[:path.rindex('/')]
     return parent,name
 
 def cleansePaths(dir, files):
+    '''
+    Removes the dir prefix from the names of the files, check each file if it starts with 
+    /content/dam and if not pre-pends /content/dam to the file
+    Finally takes the parent path of the files and retuns a dict mapping files given to the parent path
+    '''
     c_files = {}
     for file in files:
         p, v = file.split(dir, 1)

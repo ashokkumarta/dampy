@@ -8,10 +8,10 @@ from dampy.Env import Env
 from dampy.Util import *
 
 class Assets:
+    '''Class abstracting the DAM operations '''
+
 
     CFG = {
-        "strict_success": [200, 201],
-        "lenient_success": [500],
         'assets_key': 'hits',
         'path_key': 'jcr:path'
     }
@@ -33,13 +33,18 @@ class Assets:
 
     }
 
-
-
     def __init__(self, conn):
+        '''
+        Initialize an Assets instance with a AEM handle
+        '''
         self.conn = conn
 
 
     def list(self, path='/content/dam'):
+        '''
+        Get the list of all assets under the path given as parameter
+        '''
+    
         asset_list = []
         logging.debug(Assets.URL['list'])
         url = Assets.URL['list'] + path
@@ -54,6 +59,9 @@ class Assets:
         return asset_list
 
     def metadata(self, asset_path, level=1):
+        '''
+        Get the metadata of the asset. Level specifies for nesting levels for metadata fetch 
+        '''
         asset_metadata = {}
         url = asset_path + Assets.URL['metadata_suffix'] + str(level) + Assets.URL['metadata_type']
         response = self.conn.get(url)
@@ -67,16 +75,25 @@ class Assets:
 
 
     def _download(self, asset, env, retain_dam_path=True):
+        '''
+        Downlods the asset to the directory represented by the env object
+        '''
         logging.debug("Downloading asset : " + str(asset))
         response = self.conn.rawget(asset)
         env.store(asset, response.data.content, retain_dam_path)
         return True
 
     def downloadAsset(self, asset, dir='download'):
+        '''
+        Downlods the asset to the dir
+        '''
         env = Env(dir)
         return self._download(asset, env, False)
 
     def downloadFolder(self, path='/content/dam', dir='download'):
+        '''
+        Downlods all assets under the mentioned path to the dir
+        '''
         asset_list = self.list(path)
         logging.debug("Asset list : "+str(asset_list))
         overall_status = True
@@ -88,6 +105,9 @@ class Assets:
         return overall_status
 
     def createFolder(self, path, ignore_error = False):
+        '''
+        Creates the folder specified in path in DAM
+        '''
 
         parent, name = splitPath(path)
         data = Assets.DATA['CREATE_FOLDER'].replace('$name', name)
@@ -104,6 +124,9 @@ class Assets:
         return response.success
 
     def uploadAsset(self, file, path='/content/dam'):
+        '''
+        Uploads the single file to DAM at the specified path
+        '''
 
         path = trimPath(path)
         
@@ -121,6 +144,11 @@ class Assets:
         return response.success
 
     def uploadFolder(self, dir='upload'):
+        '''
+        Upload all the assets under the dir parameter. 
+        Folder structure under dir replicated onto DAM
+        Folder structure not starting with /content/dam/ pushed under /content/dam  
+        '''
        
         env = Env(dir)
         path_map = cleansePaths(dir, env.listFiles() )
@@ -130,6 +158,9 @@ class Assets:
 
 
     def activate(self, path, force='true'):
+        '''
+        Activate the asset specified by the path parameter
+        '''
 
         url = Assets.URL['Activate']
         data = {'cmd': 'Activate', 'path':path, 'force':force}
@@ -145,6 +176,9 @@ class Assets:
         return response.success
 
     def deactivate(self, path, force='true'):
+        '''
+        Deactivate the asset specified by the path parameter
+        '''
 
         url = Assets.URL['Deactivate']
         data = {'cmd': 'Deactivate', 'path':path, 'force':force}
@@ -161,6 +195,9 @@ class Assets:
 
 
     def delete(self, path, force='true'):
+        '''
+        Delete the asset specified by the path parameter
+        '''
 
         url = Assets.URL['deletePage']
         data = {'cmd': 'deletePage', 'path':path, 'force':force}
