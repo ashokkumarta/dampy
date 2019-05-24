@@ -1,8 +1,10 @@
 import requests, json
 from requests.auth import HTTPBasicAuth
 import logging
+from dampy.Assets import Assets
+from dampy.Response import Response
 
-class AEMConnector:
+class Connector:
 
     cfg = {
         "strict_success": [200, 201],
@@ -11,53 +13,65 @@ class AEMConnector:
         "Deactivate": "/bin/replicate.json",
         "Delete": "/bin/wcmcommand"
     }
+    MSGS = {
+        "service_error": 'Error in service call',
+        "non_json_response": 'Not a json in the response',
+        "Activate": "/bin/replicate.json",
+        "Deactivate": "/bin/replicate.json",
+        "Delete": "/bin/wcmcommand"
+    }
 
-    def __init__(self, host='http://localhost:4502', user='admin', password='admin'):
+    def __init__(self, host, user, password):
         self.host = host
         if user:
             self._auth = HTTPBasicAuth(user, password)
         else:
             self._auth = None
+        self.dam = Assets(self)
+
+    def rawget(self, path):
+        try:
+            url = self.host + path
+            logging.debug('URL - '+ url)
+            result = requests.get(url, auth=self._auth) 
+            logging.debug('Response from the URL : '+str(result))
+            if( self.check(result)):
+                return Response(True, None, result)
+        except:
+            logging.error(Connector.MSGS['service_error'])
+            return Response(False, Connector.MSGS['service_error'], None)
+
+        return Response(False, str(result.status_code) + '/' + result.text, None)
+
 
     def get(self, path):
         
+        response = self.rawget(path) 
         try:
-            logging.debug('Forming the URL')
-            url = self.host + path
-            logging.debug('Forming the URL - '+ url)
-
-            logging.debug('Fetching response from the URL')
-            res = requests.get(url, auth=self._auth) 
-            if( self.check(res)):
-                res_json = res.json()
-                return res_json
+            response.jsonify()
         except:
-            logging.error('Error in service call')
-        return {}
+            logging.error(Connector.MSGS['non_json_response'])
 
-    def _check_n_create_folder(self, path):
+        return response
 
-        logging.debug('Trying to create folders for the path : '+path)
-        parent, name = get_asset(path)
+    def post(self, path, data=None, files=None):
 
+        logging.debug('Performing post to ' + path)
         try:
-            url = self.host + parent + '/'
-            data = {'./jcr:primaryType': 'sling:OrderedFolder', 
-                './jcr:content/jcr:primaryType': 'nt:unstructured', 
-                '/jcr:content/jcr:title':name, \
-                ':name':name, }
+            url = self.host + path 
 
             logging.debug('URL - '+ url)
-            logging.debug('Data - '+ str(data))
 
-            res = requests.post(url, data = data, auth = self._auth)            
+            result = requests.post(url, data = data, files = files, auth = self._auth)            
 
-            if (self.check(res, False)):
-                logging.info('Path '+path+' checked and created successfully')
-            else:
-                logging.info('Path '+path+' creation failed. Path may exist already... Proceeding')
+            if (self.check(result, False)):
+                return Response(True, None, result)
         except:
-            logging.error('Error in creating path '+path)
+            logging.error(Connector.MSGS['service_error'])
+            return Response(False, Connector.MSGS['service_error'], None)
+
+        return Response(False, str(result.status_code) + '/' + result.text, None)
+
 
     def upload(self, asset, path):
         
@@ -84,7 +98,7 @@ class AEMConnector:
         
 
         try:
-            url = self.host + AEMConnector.cfg[action]
+            url = self.host + Connector.cfg[action]
             full_path =  path + '/' + name
             data = {'cmd': action, 'path':full_path, 'force':force}
 
@@ -104,14 +118,13 @@ class AEMConnector:
 
     def check(self, res, strict=True):
         
-        logging.debug('Response code : ' + str(res.status_code))
-        if res.status_code in AEMConnector.cfg['strict_success']:
+        logging.info('Response code : ' + str(res.status_code))
+        if res.status_code in Connector.cfg['strict_success']:
             return True
-        elif not strict and res.status_code in AEMConnector.cfg['lenient_success']:
+        elif not strict and res.status_code in Connector.cfg['lenient_success']:
             logging.debug('Lenient Success allowed for code : ' + str(res.status_code))
             return True
         else:
-            logging.debug('Reponse received : \n' + str(res.text))
-            logging.debug('...............................\n')
+            logging.error('Reponse received : \n' + str(res.text))
             return False
 
