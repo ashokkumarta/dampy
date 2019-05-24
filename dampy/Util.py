@@ -1,3 +1,5 @@
+# ashokkumar.ta@gmail.com / 24-May-2019
+
 def trimPath(path):
     if path.endswith('/'):
         return path[:-1]

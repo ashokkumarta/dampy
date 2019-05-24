@@ -74,3 +74,6 @@ print('Status : '+str(status))
 ---
 > Environments Tested on:  AEM 6.1, 6.2 & 6.4 | Windows, RHEL5 | Python 3.7.2
 
+## Author
+ashokkumar.ta@gmail.com | 24-May-2019
+
