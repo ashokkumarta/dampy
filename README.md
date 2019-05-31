@@ -6,143 +6,278 @@ An utility to easily work with Adobe Experience Manager (AEM) DAM.
 Python 3
 ```
 
-## Sample
+## About the tool
+dampy is a tool to work with AEM DAM. For a client I recently work with, as we went live the client team had frequent requests to
+* Get a list of all the assets under a path 
+* Download all assets under a path
+* Upload assets organized in the local folder structure to DAM
+* Extract specific properties of all assets under a path
+* Update properties of assets based on spreadsheet
+* And so on…
+After dabbling with curls, AEM reports and WebDAV tools, I came to realize that writing Python scripts to make REST API calls to AEM and/or convert the result JSON into required output format to be the quickest and easiest option to handle these requests. dampy is a consolidation of many such scripts written into a comprehensive tool to work with AEM DAM 
+
+
+## Getting Started
+dampy is available as pip install. To start working on this tool install it through pip command
 ```
-#Source dampy_test.py
+pip install dampy
+```
+After the tool is installed, you can straight away start using it. All that it takes is to import AEM class from dampy package and start working with it. The below code is all it takes to get a list of all assets in DAM
 
-from dampy import AEM
+```
+# Getting started
+# Import AEM from dampy.AEM
+>>> From dampy.AEM import AEM
+# Create a handle to an AEM Instance
+>>> author = AEM()
+# List all assets in DAM
+>>> author.dam.list()
+```
+
+As you can see, three lines is all it takes to get a list of all assets in DAM
+1.	Import AEM from dampy.AEM
+2.	Create an instance of AEM
+3.	Call the list method 
+
+__Note:__ By default, dampy connects to AEM Author instance running locally with admin/admin as credentials. Keep your local AEM instance running when trying the above snippet. 
+
+## dampy in-depth
+The following sections explains in-depth the functionalities and technical details of dampy tool
+
+### Creating an AEM handle
+The first step in working with dampy is to create an AEM handle. To create an AEM handle, import AEM from dampy.AEM and create an instance of it. Below code snippet shows various options to create an AEM handle
+
+```
+>>> From dampy.AEM import AEM
+# Different options for creating AEM handle
+# Create AEM handle to default AEM instance
+>>> aem = AEM()
+# Create AEM handle to the given host and credentials
+>>> aem = AEM(‘http://my-aem-host:port’, ‘user’,’password’)
+# Create AEM handle to default host, for admin user with password as ‘new-password’
+>>> aem = AEM(password = ‘new-password’)
+```
+
+As you can see, AEM constructor takes in three optional parameters
+
+__host__ – defaults to http://localhost:4502
+user – defaults to ‘admin’
+password – defaults to ‘admin’
+
+You can pass in none, all three, or some of these parameters to create an AEM handle
+
+### The dam object in AEM handle
+The AEM handle includes a dam object wrapped within it and all functionalities of dampy are exposed as methods on this dam object. The signature for invoking any method on dam looks like this
+
+```
+>>> aem.dam.<api>(<params...>)
+```
+
+We will see all the methods exposed on dam object in the following sections
 
 
-## Create an AEM handle. Connects by default to localhost:4502 with admin/admin
-aem = AEM()
+### list()
 
-# List all assets under a path
-print ('List all assets under a path')
-list = aem.dam.list('/content/dam/we-retail/en/products/apparel/shorts')
-for asset in list:
-    print (asset)
+This method takes an optional path parameter and returns a list of all assets under this path. The returned list includes assets under all the subfolders of this path, subfolders under it and so on covering the entire node tree under the given path
 
-# List all assets under a path and wirte it to default CSV file
-print ('List all assets under a path and wirte it to default CSV file')
-list = aem.dam.list('/content/dam/we-retail', True)
-for asset in list:
-    print (asset)
+If path parameter is not provided, it returns all assets in DAM (all assets under /content/dam)
 
-# List all assets under a path and wite it to teh CSV file specified
-print ('List all assets under a path and wite it to teh CSV file specified')
-list = aem.dam.list('/content/dam/we-retail/en/products', True, 'output/all_products.csv')
-for asset in list:
-    print (asset)
+It also has two more optional parameters
 
-# Create the new folder 
-print ('Create the new folder')
-status = aem.dam.createFolder('/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+csv_dump – A Boolean flag indicating if the list needs to be written to a CSV file. Default value of this flag is False
 
-# Create the new folder, specifying a title 
-print ('Create the new folder, specifying a title')
-status = aem.dam.createFolder('/content/dam/dampy/test/new_samples', 'My New Sample')
-print('Status : '+str(status))
+csv_file – The output csv file name to write the list output to. The list gets written to output if either the csv_dump is set to True of csv_file value is specified. 
 
-# Upload an asset. Uploads under /content/dam as path is not specified 
-print ('Upload an asset at the specified path')
-status = aem.dam.uploadAsset('upload/Shorts_men.jpg')
-print('Status : '+str(status))
+If csv_dump is set to True but no csv_file value is specified, output is written to the file 'output/asset_list.csv' under the current working directory
+ 
+```
+# List all assets under ‘/content/dam/my_folder’
+>>> my_assets = aem.dam.list(‘/content/dam/my_folder’)
 
-# Upload an asset at the specified path - dampy/test/samples. 
-print ('Upload an asset at the specified path')
-status = aem.dam.uploadAsset('upload/Shorts_men.jpg', '/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+# List all assets under ‘/content/dam’
+>>> all_assets = aem.dam.list()
 
-# Upload all assets in a local upload folder to DAM under dampy/test/new_samples. By default uploads all assets from the folder named 'upload' 
-print ('Upload all assets in a local folder to DAM')
-status = aem.dam.uploadFolder(path='/content/dam/dampy/test/new_samples')
-print('Status : '+str(status))
+# List all assets under ‘/content/dam/my_folder’ and also write the output to a CSV file
+>>> my_assets = aem.dam.list(‘/content/dam/my_folder’, csv_dump=True)
 
-# Upload all assets in a local folder 'upload_test' to DAM under dampy/test/samples.  
-print ('Upload all assets in a local folder to DAM at the specified path')
-status = aem.dam.uploadFolder(dir='upload/products', path='/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+# List all assets under ‘/content/dam/my_folder’ and also write the output to the CSV file specified
+>>> my_assets = aem.dam.list(‘/content/dam/my_folder’, csv_file=’output/list.csv’, )
+```
 
-# Download an asset to a local folder. By default gets downloaded to a folder named 'download'
-print ('Download an asset to a local folder')
-status = aem.dam.downloadAsset('/content/dam/dampy/test/samples/Shorts_men.jpg')
-print('Status : '+str(status))
+### createFolder()
+This method creates a new folder in DAM. It takes in the path of the folder to create as a parameter and an optional title for the folder & returns a Boolean value indicating the success status of folder creation
+Parameters 
+path – DAM folder path to create
+title – Optional title for the folder. If not provided, name of the folder is set as title
 
-# Download an asset to a local folder, retaining the DAM path in local. By default gets downloaded to a folder named 'download'
-print ('Download an asset to a local folder, retaining the DAM path in local')
-status = aem.dam.downloadAsset('/content/dam/dampy/test/samples/Shorts_men.jpg', retain_dam_path=True)
-print('Status : '+str(status))
+```
+# Create a new DAM folder /content/dam/new_folder and set its title to ‘new_folder’
+>>> status = aem.dam.createFolder(‘/content/dam/new_folder’)
 
-# Download all assets under a path. By default assets tree get downloaded under a folder named 'download'
-print ('Download all assets under a path')
-status = aem.dam.downloadFolder('/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+# Create a new DAM folder /content/dam/new_folder and set its title to ‘My New Folder’
+>>> status = aem.dam.createFolder(‘/content/dam/new_folder’, ‘My New Folder’)
+```
 
-# Download all assets under a DAM path to local, ignoring the DAM folder tree hierarchy. By default assets tree get downloaded under a folder named 'download'
-print ('Download all assets under a DAM path to local, ignoring the DAM folder tree hierarchy')
-status = aem.dam.downloadFolder('/content/dam/dampy/test/new_samples', 'download/test', False)
-print('Status : '+str(status))
+### uploadAsset()
+This method uploads an asset from the local path to DAM under the path specified. It takes in 2 parameters
+file – Path of the local file to upload. This is a mandatory parameter
+path – DAM path under which the file has to be uploaded, Defaults to ‘/content/dam’ if not specified
+This method returns a Boolean value indicating the success status
 
-# Get Metadata of an asset
-print ('Get Metadata of an asset')
-metadata = aem.dam.metadata('/content/dam/dampy/test/samples/Shorts_men.jpg')
-print(metadata)
+```
+# Upload the given file to the specified DAM folder
+>>> status = aem.dam.uploadAsset(‘./assets/sample1.png’, ‘/content/dam/new_folder)
 
-# Extract default properties of assets under the given path and write it to a CSV file
-print ('Extract properties of assets under the given path and write it to a CSV file')
-status = aem.dam.xprops('/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+# Upload the given file to DAM under ‘/content/dam’
+>>> status = aem.dam.uploadAsset(‘./assets/sample1.png’)
+```
 
-# Extract specific properties of assets under the given path and write it to a CSV file
-print ('Extract specific properties of assets under the given path and write it to a CSV file')
-status = aem.dam.xprops('/content/dam/dampy/test', ['jcr:path', 'jcr:content/metadata/dc:title','jcr:content/metadata/jcr:title'])
-print('Status : '+str(status))
+### uploadFolder()
+This method uploads all the assets from a local folder to DAM. It takes in 2 parameters
+dir – The local folder path, all assets under which gets uploaded to DAM. This is an optional parameter and uploads all assets under folder named ‘upload’ under the current path if not specified
+path – DAM path under which to download. Its optional and defaults to /content/dam. For assets under the folder structure starting with /content/dam/… in the local folder specified, this parameter is ignored
+The folder structure under the given local folder dir gets reflected under the DAM path provided. 
+This method also returns a Boolean value indicating the success status
+```
+# Upload all the folders and assets under ./upload to DAM under /content/dam
+>>> status = aem.dam.uploadFolder()
 
-# Update properties of assets based on an input CSV file
-print ('Update properties of assets based on an input CSV file')
-status = aem.dam.uprops()
-print('Status : '+str(status))
+# Upload all the folders and assets under ./upload to DAM under /content/dam/my_uploads
+>>> status = aem.dam.uploadFolder(path=’/content/dam/my_uploads)
 
-# Update properties of assets based on an input CSV file
-print ('Update properties of assets based on an input CSV file')
-status = aem.dam.uprops('input/my_asset_update.csv')
-print('Status : '+str(status))
+# Upload all the folders and assets under ./assets to DAM under /content/dam
+>>> status = aem.dam.uploadFolder(‘./assets’)
 
-# Extract specific properties of assets under the given path and write it to a CSV file
-print ('Extract specific properties of assets under the given path and write it to a CSV file')
-status = aem.dam.xprops('/content/dam/dampy/test', ['jcr:path', 'jcr:content/metadata/dc:title','jcr:content/metadata/jcr:title'], 'output/after_my_update.csv')
-print('Status : '+str(status))
+# Upload all the folders and assets under ./assets to DAM under /content/dam/my_uploads
+>>> status = aem.dam.uploadFolder(dir=‘./assets’, path=’/content/dam/my_uploads)
+```
 
-# Activate an asset
-print ('Activate an asset')
-status = aem.dam.activate('/content/dam/dampy/test/samples/Shorts_men.jpg')
-print('Status : '+str(status))
 
-# Activate a folder
-print ('Activate an asset')
-status = aem.dam.activate('/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+### downloadAsset()
+This method downloads the given assets to a local folder. This method takes in three parameters 
+asset_path – A mandatory parameter which is the full path to the asset to download
+dir – local folder path to download the asset. This is optional and the asset gets downloaded to a folder named ‘download’ if not specified. The folder gets created is the given folder does not exist on the file system
+retain_dam_path – A Boolean flag to retain or ignore the DAM folder tree when downloading to local. Defaults to False
+This method returns a Boolean value indicating the success or failure of the download
+```
+# Download the asset to ./download folder
+>>> status = aem.dam.downloadAsset(‘/content/dam/my_folder/dampy_sample.png’)
 
-# Deactivate an asset
-print ('Deactivate an asset')
-status = aem.dam.deactivate('/content/dam/dampy/test/samples/Shorts_men.jpg')
-print('Status : '+str(status))
+# Download the asset to ./assets folder
+>>> status = aem.dam.downloadAsset(‘/content/dam/my_folder/dampy_sample.png’, ‘./assets’)
 
-# Deactivate an asset
-print ('Deactivate a folder')
-status = aem.dam.deactivate('/content/dam/dampy/test/samples')
-print('Status : '+str(status))
+# Download the asset to ./assets folder under the subfolder /content/dam/my_folder
+>>> status = aem.dam.downloadAsset(‘/content/dam/my_folder/dampy_sample.png’, ‘./assets’, True)
+```
 
-# Delete an asset
-print ('Delete an asset')
-status = aem.dam.delete('/content/dam/Shorts_men.jpg')
-print('Status : '+str(status))
+### downloadFolder()
+This method downloads all the assets under a given DAM path to a local folder. This method takes in three parameters 
+path – Optional. Path of the DAM folder from which all assets gets downloaded. If this parameter is not given all assets under ‘/content/dam’ gets downloaded
+dir – local folder path to download all the asset to. This is optional and the assets get downloaded to a folder named ‘download’ if not specified. The folder to download the assets to gets created if it does not already exist on the file system. 
+retain_dam_path – A Boolean flag to retain or ignore the DAM folder tree when downloading to local. Defaults to True
+The tree structure of DAM is retained when downloading assets under the given DAM path, with the downloaded folder structure reflecting the DAM folder hierarchy
+This method also returns a Boolean value indicating the success or failure of the download
 
-# Delete a folder
-print ('Delete a folder')
-status = aem.dam.delete('/content/dam/dampy/test')
-print('Status : '+str(status))
+```
+# Download all assets under the given DAM folder to ./download, retaining the DAM folder structure in local
+
+>>> status = aem.dam.downloadFolder(‘/content/dam/my_folder’)
+
+# Download all assets under the given DAM folder to ./assets folder, retaining the DAM folder structure in local
+>>> status = aem.dam.downloadFolder(‘/content/dam/my_folder’, ‘./assets’)
+
+# Download all assets under the given DAM folder to ./assets folder. All assets are placed in ./assets folder, ignoring the DAM folder structure
+>>> status = aem.dam.downloadFolder(‘/content/dam/my_folder’, ‘./assets’, False)
+```
+
+
+### metadata()
+This method returns the metadata of the given asset as a json object. It takes in 2 parameters 
+asset_path – A mandatory parameter which is the full path to the asset
+level – optional, the nesting level in the node hierarchy includes in the response json. Defaults to 1 
+
+```
+# Get level 1 metadata of given asset
+>>> metadata_json = aem.dam.metadata(‘/content/dam/my_folder/dampy_sample.png’)
+
+# Get up to level 4 metadata of the given asset 
+>>> metadata_json = aem.dam.metadata(‘/content/dam/my_folder/dampy_sample.png’, 4)
+```
+
+### xprops()
+This method extracts the metadata properties of all the assets under a given path and writes it to a CSV file. It takes 3 parameters, all optional
+path – DAM path. Extracts properties of all assets under this path. Defaults to ‘/content/dam’
+props – List of properties to extract. By default extract the asset path & title
+csv_file – The output file to write the extracted properties to. By default, its written to the file ‘output/asset_props.csv’
+
+```
+# Extract path and title of all dam assets and write it to output/asset_props.csv
+>>> status = aem.dam.xprops()
+
+# Extract path and title of all dam assets under my_folder and write it to output/asset_props.csv
+>>> status = aem.dam.xprops(‘/content/dam/my_folder’)
+
+# Extract path, title and tags of all dam assets under my_folder and write it to output/asset_title_n_tags_.csv
+>>> status = aem.dam.xprops(‘/content/dam/my_folder’, [‘jcr:path’, ‘jcr:content/metadata/dc:title’, ‘jcr:content/metadata/cq:tags’], ‘output/asset_title_n_tags_.csv’)
+```
+
+
+### uprops()
+This method takes a csv file as input and updates asset properties with the data provided in this CSV file. It takes 1parameter, the path to the CSV file. 
+csv_file  – Path to the csv file with data for asset properties update. By default, tries the read the input csv file at in ‘input/asset_props.csv’
+This input CSV file should adhere to the below conditions
+The first row is the header and should have the property name to update for the respective columns. Property name is the fully qualified name of the property under the asset. E.g. Title property name is ‘jcr:content/metadata/dc:title’
+The second row is the type of the property. Can be String, Date, Boolean, … and can be a single value or array value. E.g. for String array mention the type as ‘String[]’
+From row 3 onwards, each row contains the properties for one asset 
+The first column must be ‘jcr:path’ property with its type as String and values as full path of the asset in DAM 
+After creating the csv and placing it in a path, invoke the uprops method as given in the below code snippet
+
+```
+# Update properties based on the input csv file input/asset_props.csv
+>>> status = aem.dam.uprops()
+
+# Update properties based on the input csv file input/asset_cust_props.csv
+>>> status = aem.dam.uprops(‘input/asset_cust_props.csv’)
+```
+
+
+### activate()
+This method activates the given asset or a folder in DAM. It takes in one mandatory path parameter 
+path – Mandatory parameter specifying the path to the asset or DAM folder that needs to be activated
+This method returns a Boolean value indicating the success status
+
+```
+# Activates the given asset in DAM
+>>> status = aem.dam.activate((‘/content/dam/my_folder/dampy_sample.png’)
+
+# Activates the given folder (folder tree) in DAM
+>>> status = aem.dam.activate((‘/content/dam/my_folder’)
+```
+
+### deactivate()
+This method deactivates a given asset or a folder in DAM.  It takes in one mandatory path parameter 
+path – Mandatory parameter specifying the path to the asset or a DAM folder that needs to be deactivated
+This method returns a Boolean value indicating the success status
+
+```
+# Deactivates the given asset in DAM
+>>> status = aem.dam.deactivate((‘/content/dam/my_folder/dampy_sample.png’)
+# Deactivates the given folder in DAM
+>>> status = aem.dam.deactivate((‘/content/dam/my_folder’)
+```
+
+### delete()
+This method deletes a given asset or a folder. It takes in one mandatory path parameter 
+path – Mandatory parameter specifying the path to the asset or the DAM folder that needs to be deleted
+This method returns a Boolean value indicating the success status
+```
+# Deletes the given asset from DAM
+>>> status = aem.dam.delete((‘/content/dam/my_folder/dampy_sample.png’)
+
+# Deletes the given folder from DAM
+>>> status = aem.dam.delete((‘/content/dam/my_folder’)
+```
+ 
 
 
 ## Reservation
