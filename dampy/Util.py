@@ -1,5 +1,7 @@
 # ashokkumar.ta@gmail.com / 24-May-2019
 
+import os
+
 def trimPath(path):
     '''
     Removes the trailing / from the path given
@@ -21,7 +23,7 @@ def splitPath(path):
     parent = path[:path.rindex('/')]
     return parent,name
 
-def cleansePaths(dir, files):
+def cleansePaths(dir, files, path):
     '''
     Removes the dir prefix from the names of the files, check each file if it starts with 
     /content/dam and if not pre-pends /content/dam to the file
@@ -31,8 +33,18 @@ def cleansePaths(dir, files):
     for file in files:
         p, v = file.split(dir, 1)
         if not v.startswith('/content/dam/'):
-            v = '/content/dam' + v
+            v = path + v
         parent, name = splitPath(v)
         c_files[file] = parent
     return c_files
+
+def dir_n_file(path, ext):
+    base = os.path.basename(path)
+    dir = os.path.dirname(path)
+    if not base.endswith('.'+ext):
+        base += '.'+ext
+    if not dir:
+        dir = '.'
+    return dir, base
+
 

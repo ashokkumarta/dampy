@@ -42,18 +42,22 @@ class Assets:
 
     URL = {
         &#39;list&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=jcr:path&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;xprops&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=$props&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;uprops&#39;: &#39;/content/dam.html&#39;,
         &#39;metadata_suffix&#39;: &#39;/jcr:content.&#39;,
         &#39;metadata_type&#39;: &#39;.json&#39;,
-        &#34;Activate&#34;: &#34;/bin/replicate.json&#34;,
-        &#34;Deactivate&#34;: &#34;/bin/replicate.json&#34;,
-        &#34;deletePage&#34;: &#34;/bin/wcmcommand&#34;
+        &#39;Activate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;Deactivate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;deletePage&#39;: &#39;/bin/wcmcommand&#39;,
+        &#39;ActivateTree&#39;: &#39;/libs/replication/treeactivation.html&#39;
     }
 
     DATA = {
-        &#34;CREATE_FOLDER&#34; : &#34;{&#39;./jcr:primaryType&#39;: &#39;sling:OrderedFolder&#39;, \
-            &#39;./jcr:content/jcr:primaryType&#39;: &#39;nt:unstructured&#39;, \
-            &#39;/jcr:content/jcr:title&#39;:&#39;$name&#39;, \
-            &#39;:name&#39;:&#39;$name&#39; }&#34;
+        &#39;CREATE_FOLDER&#39; : &#39;{&#34;./jcr:primaryType&#34;: &#34;sling:OrderedFolder&#34;, \
+            &#34;./jcr:content/jcr:primaryType&#34;: &#34;nt:unstructured&#34;, \
+            &#34;/jcr:content/jcr:title&#34;:&#34;$title&#34;, \
+            &#34;:name&#34;:&#34;$name&#34; }&#39;,
+        &#39;U_PROPS&#39; : &#39;{&#34;_charset_&#34;: &#34;utf-8&#34;, &#34;dam:bulkUpdate&#34;: &#34;true&#34;, &#34;mode&#34;: &#34;hard&#34;}&#39;
 
     }
 
@@ -64,9 +68,9 @@ class Assets:
         self.conn = conn
 
 
-    def list(self, path=&#39;/content/dam&#39;):
+    def list(self, path=&#39;/content/dam&#39;, csv_dump=False, csv_file=&#39;output/asset_list.csv&#39;):
         &#39;&#39;&#39;
-        Get the list of all assets under the path given as parameter
+        Get the list of all assets under the path given as parameter and optionally write it to a CSV file
         &#39;&#39;&#39;
     
         asset_list = []
@@ -80,6 +84,11 @@ class Assets:
             logging.error(&#39;Error getting the assets list&#39;)
             logging.error(&#39;Failed due to : &#39;+response.message)
             logging.error(&#39;Empty list returned&#39;)
+        if csv_dump or csv_file:
+            logging.debug(&#34;Writing asset list of assets to : &#34; + csv_file)
+            dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+            env = Env(dir)
+            env.writeCSV(fname, list=asset_list)
         return asset_list
 
     def metadata(self, asset_path, level=1):
@@ -97,26 +106,123 @@ class Assets:
             logging.error(&#39;Empty metadata returned&#39;)
         return asset_metadata
 
+    def _metaVal(self, asset, key):
+        &#39;&#39;&#39;
+        Finds the key in the asset json and returns its vale
+        &#39;&#39;&#39;
+        path = key.split(&#39;/&#39;)
+        p_obj = asset
+        try:
+            for k in path:
+                p_obj = p_obj[k]
+        except:
+            return None
+        return p_obj
 
-    def _download(self, asset, env, retain_dam_path=True):
+    def _csvRead(self, csv_file, header=True, type=True):
+        &#39;&#39;&#39;
+        Reads the CSV file and returns the headers, types and data as per the flags passed in
+        &#39;&#39;&#39;
+
+        headers = []
+        types = []
+        csv_data = []
+
+        with open(csv_file,&#39;r&#39;) as cFile:
+            for row in cFile:
+                csv_data.append(row.strip().split(&#34;,&#34;))
+
+        if csv_data and header :
+            headers = csv_data.pop(0)
+        if csv_data and type :
+            types = csv_data.pop(0)
+        return headers, types, csv_data
+
+    def xprops(self, path=&#39;/content/dam&#39;, props=[&#39;jcr:path&#39;,&#39;jcr:content/metadata/dc:title&#39;], csv_file=&#39;output/asset_props.csv&#39;):
+        &#39;&#39;&#39;
+        Extracts the metadata properties of the assets under the given path and writes it to an output csv file 
+        &#39;&#39;&#39;
+        asset_data = []
+        url = Assets.URL[&#39;xprops&#39;] + path
+        url = url.replace(&#39;$props&#39;, &#39; &#39;.join(props))
+        
+        logging.debug(url)
+
+        response = self.conn.get(url)
+        if response.success:
+            asset_data.append(props)
+            for asset in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                asset_props = []
+                for key in props:
+                    asset_props.append(self._metaVal(asset, key))
+                asset_data.append(asset_props)
+            logging.debug(&#34;Writing asset list of assets to : &#34; + csv_file)
+            dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+            env = Env(dir)
+            env.writeCSV(fname, data=asset_data)
+            return True
+        else:
+            logging.error(&#39;Error extracting asset properties&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+        return False
+
+    def uprops(self, csv_file=&#39;input/asset_props.csv&#39;):
+        &#39;&#39;&#39;
+        Reads a CSV file and updates the asset perperties based on this CSV data 
+        &#39;&#39;&#39;
+        headers, types, csv_data = self._csvRead(csv_file)
+        if not headers:
+            logging.error(&#39;Invalid CSV input file&#39;)
+            logging.error(&#39;First row of CSV must be headers&#39;)
+            return False
+        elif ( &#34;jcr:path&#34; != headers[0]):
+            logging.error(&#39;Invalid CSV input file&#39;)
+            logging.error(&#39;The first column of header must be jcr:path property&#39;)
+            return False
+        if not types:
+            logging.error(&#39;Invalid CSV input file&#39;)
+            logging.error(&#39;Second row of CSV must be types&#39;)
+            return False
+
+        overall_status = True
+        for row in csv_data:
+
+            api_a_path = row[0][12:]
+            update_properties = json.loads(Assets.DATA[&#39;U_PROPS&#39;])
+
+            for index, header in enumerate(headers):
+                if index &gt; 0 and header:
+                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header] = row[index]
+                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;] = types[index]
+            
+            logging.debug(&#39;Updating with : &#39;,json.dumps(update_properties))
+            response = self.conn.post(Assets.URL[&#39;uprops&#39;], data = update_properties)
+            if not response.success :
+                logging.error(&#39;Error updating properties for asset : &#39;,update_properties)
+                overall_status = False
+        return overall_status
+
+
+    def _download(self, asset_path, env, retain_dam_path):
         &#39;&#39;&#39;
         Downlods the asset to the directory represented by the env object
         &#39;&#39;&#39;
-        logging.debug(&#34;Downloading asset : &#34; + str(asset))
-        response = self.conn.rawget(asset)
-        env.store(asset, response.data.content, retain_dam_path)
+        logging.debug(&#34;Downloading asset : &#34; + str(asset_path))
+        response = self.conn.rawget(asset_path)
+        env.store(asset_path, response.data.content, retain_dam_path)
         return True
 
-    def downloadAsset(self, asset, dir=&#39;download&#39;):
+    def downloadAsset(self, asset_path, dir=&#39;download&#39;, retain_dam_path=False):
         &#39;&#39;&#39;
         Downlods the asset to the dir
         &#39;&#39;&#39;
         env = Env(dir)
-        return self._download(asset, env, False)
+        return self._download(asset_path, env, retain_dam_path)
 
-    def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;):
+    def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;, retain_dam_path=True):
         &#39;&#39;&#39;
-        Downlods all assets under the mentioned path to the dir
+        Downlods all assets under the mentioned DAM path to the dir
         &#39;&#39;&#39;
         asset_list = self.list(path)
         logging.debug(&#34;Asset list : &#34;+str(asset_list))
@@ -124,17 +230,21 @@ class Assets:
         if asset_list:
             env = Env(dir)
             for asset in asset_list:
-                status = self._download(asset, env)
+                status = self._download(asset, env, retain_dam_path)
                 overall_status &amp;= status
         return overall_status
 
-    def createFolder(self, path, ignore_error = False):
+    def createFolder(self, path, title=None, ignore_error = False):
         &#39;&#39;&#39;
-        Creates the folder specified in path in DAM
+        Creates the folder specified by the path in DAM
         &#39;&#39;&#39;
 
         parent, name = splitPath(path)
         data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+        if title:
+            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, title)
+        else:
+            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, name)
 
         logging.debug(&#39;URL - &#39;+ path)
         logging.debug(&#39;Data - &#39;+ data)
@@ -154,7 +264,7 @@ class Assets:
 
         path = trimPath(path)
         
-        self.createFolder(path, True)
+        self.createFolder(path, None, True)
         
         url = path + &#39;.createasset.html&#39;
         logging.debug(&#39;URL - &#39;+ path)
@@ -167,26 +277,33 @@ class Assets:
             logging.error(&#39;Failed due to : &#39;+response.message)
         return response.success
 
-    def uploadFolder(self, dir=&#39;upload&#39;):
+    def uploadFolder(self, dir=&#39;upload&#39;, path=&#39;/content/dam&#39;):
         &#39;&#39;&#39;
         Upload all the assets under the dir parameter. 
-        Folder structure under dir replicated onto DAM
-        Folder structure not starting with /content/dam/ pushed under /content/dam  
+        Folder structure under dir replicated onto DAM, under the path specified
         &#39;&#39;&#39;
        
         env = Env(dir)
-        path_map = cleansePaths(dir, env.listFiles() )
+        path_map = cleansePaths(dir, env.listFiles(), path )
+        overall_status = True
         for file in path_map:
             logging.debug(&#39;Uploading file - &#39;+ file)
-            self.uploadAsset(file, path_map[file])
-
+            status = self.uploadAsset(file, path_map[file])
+            overall_status &amp;= status
+        return overall_status
 
     def activate(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
-        Activate the asset specified by the path parameter
+        Activate the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
-        url = Assets.URL[&#39;Activate&#39;]
+        metadata = self.metadata(path)
+
+        if(&#39;dam:AssetContent&#39; == metadata[&#39;jcr:primaryType&#39;]) :
+            url = Assets.URL[&#39;Activate&#39;]
+        else :
+            url = Assets.URL[&#39;ActivateTree&#39;]
+
         data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
         logging.debug(&#39;URL - &#39;+ url)
@@ -201,7 +318,7 @@ class Assets:
 
     def deactivate(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
-        Deactivate the asset specified by the path parameter
+        Deactivate the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
         url = Assets.URL[&#39;Deactivate&#39;]
@@ -220,7 +337,7 @@ class Assets:
 
     def delete(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
-        Delete the asset specified by the path parameter
+        Delete the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
         url = Assets.URL[&#39;deletePage&#39;]
@@ -266,18 +383,22 @@ class Assets:
 
     URL = {
         &#39;list&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=jcr:path&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;xprops&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=$props&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;uprops&#39;: &#39;/content/dam.html&#39;,
         &#39;metadata_suffix&#39;: &#39;/jcr:content.&#39;,
         &#39;metadata_type&#39;: &#39;.json&#39;,
-        &#34;Activate&#34;: &#34;/bin/replicate.json&#34;,
-        &#34;Deactivate&#34;: &#34;/bin/replicate.json&#34;,
-        &#34;deletePage&#34;: &#34;/bin/wcmcommand&#34;
+        &#39;Activate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;Deactivate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;deletePage&#39;: &#39;/bin/wcmcommand&#39;,
+        &#39;ActivateTree&#39;: &#39;/libs/replication/treeactivation.html&#39;
     }
 
     DATA = {
-        &#34;CREATE_FOLDER&#34; : &#34;{&#39;./jcr:primaryType&#39;: &#39;sling:OrderedFolder&#39;, \
-            &#39;./jcr:content/jcr:primaryType&#39;: &#39;nt:unstructured&#39;, \
-            &#39;/jcr:content/jcr:title&#39;:&#39;$name&#39;, \
-            &#39;:name&#39;:&#39;$name&#39; }&#34;
+        &#39;CREATE_FOLDER&#39; : &#39;{&#34;./jcr:primaryType&#34;: &#34;sling:OrderedFolder&#34;, \
+            &#34;./jcr:content/jcr:primaryType&#34;: &#34;nt:unstructured&#34;, \
+            &#34;/jcr:content/jcr:title&#34;:&#34;$title&#34;, \
+            &#34;:name&#34;:&#34;$name&#34; }&#39;,
+        &#39;U_PROPS&#39; : &#39;{&#34;_charset_&#34;: &#34;utf-8&#34;, &#34;dam:bulkUpdate&#34;: &#34;true&#34;, &#34;mode&#34;: &#34;hard&#34;}&#39;
 
     }
 
@@ -288,9 +409,9 @@ class Assets:
         self.conn = conn
 
 
-    def list(self, path=&#39;/content/dam&#39;):
+    def list(self, path=&#39;/content/dam&#39;, csv_dump=False, csv_file=&#39;output/asset_list.csv&#39;):
         &#39;&#39;&#39;
-        Get the list of all assets under the path given as parameter
+        Get the list of all assets under the path given as parameter and optionally write it to a CSV file
         &#39;&#39;&#39;
     
         asset_list = []
@@ -304,6 +425,11 @@ class Assets:
             logging.error(&#39;Error getting the assets list&#39;)
             logging.error(&#39;Failed due to : &#39;+response.message)
             logging.error(&#39;Empty list returned&#39;)
+        if csv_dump or csv_file:
+            logging.debug(&#34;Writing asset list of assets to : &#34; + csv_file)
+            dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+            env = Env(dir)
+            env.writeCSV(fname, list=asset_list)
         return asset_list
 
     def metadata(self, asset_path, level=1):
@@ -321,26 +447,123 @@ class Assets:
             logging.error(&#39;Empty metadata returned&#39;)
         return asset_metadata
 
+    def _metaVal(self, asset, key):
+        &#39;&#39;&#39;
+        Finds the key in the asset json and returns its vale
+        &#39;&#39;&#39;
+        path = key.split(&#39;/&#39;)
+        p_obj = asset
+        try:
+            for k in path:
+                p_obj = p_obj[k]
+        except:
+            return None
+        return p_obj
 
-    def _download(self, asset, env, retain_dam_path=True):
+    def _csvRead(self, csv_file, header=True, type=True):
+        &#39;&#39;&#39;
+        Reads the CSV file and returns the headers, types and data as per the flags passed in
+        &#39;&#39;&#39;
+
+        headers = []
+        types = []
+        csv_data = []
+
+        with open(csv_file,&#39;r&#39;) as cFile:
+            for row in cFile:
+                csv_data.append(row.strip().split(&#34;,&#34;))
+
+        if csv_data and header :
+            headers = csv_data.pop(0)
+        if csv_data and type :
+            types = csv_data.pop(0)
+        return headers, types, csv_data
+
+    def xprops(self, path=&#39;/content/dam&#39;, props=[&#39;jcr:path&#39;,&#39;jcr:content/metadata/dc:title&#39;], csv_file=&#39;output/asset_props.csv&#39;):
+        &#39;&#39;&#39;
+        Extracts the metadata properties of the assets under the given path and writes it to an output csv file 
+        &#39;&#39;&#39;
+        asset_data = []
+        url = Assets.URL[&#39;xprops&#39;] + path
+        url = url.replace(&#39;$props&#39;, &#39; &#39;.join(props))
+        
+        logging.debug(url)
+
+        response = self.conn.get(url)
+        if response.success:
+            asset_data.append(props)
+            for asset in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                asset_props = []
+                for key in props:
+                    asset_props.append(self._metaVal(asset, key))
+                asset_data.append(asset_props)
+            logging.debug(&#34;Writing asset list of assets to : &#34; + csv_file)
+            dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+            env = Env(dir)
+            env.writeCSV(fname, data=asset_data)
+            return True
+        else:
+            logging.error(&#39;Error extracting asset properties&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+        return False
+
+    def uprops(self, csv_file=&#39;input/asset_props.csv&#39;):
+        &#39;&#39;&#39;
+        Reads a CSV file and updates the asset perperties based on this CSV data 
+        &#39;&#39;&#39;
+        headers, types, csv_data = self._csvRead(csv_file)
+        if not headers:
+            logging.error(&#39;Invalid CSV input file&#39;)
+            logging.error(&#39;First row of CSV must be headers&#39;)
+            return False
+        elif ( &#34;jcr:path&#34; != headers[0]):
+            logging.error(&#39;Invalid CSV input file&#39;)
+            logging.error(&#39;The first column of header must be jcr:path property&#39;)
+            return False
+        if not types:
+            logging.error(&#39;Invalid CSV input file&#39;)
+            logging.error(&#39;Second row of CSV must be types&#39;)
+            return False
+
+        overall_status = True
+        for row in csv_data:
+
+            api_a_path = row[0][12:]
+            update_properties = json.loads(Assets.DATA[&#39;U_PROPS&#39;])
+
+            for index, header in enumerate(headers):
+                if index &gt; 0 and header:
+                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header] = row[index]
+                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;] = types[index]
+            
+            logging.debug(&#39;Updating with : &#39;,json.dumps(update_properties))
+            response = self.conn.post(Assets.URL[&#39;uprops&#39;], data = update_properties)
+            if not response.success :
+                logging.error(&#39;Error updating properties for asset : &#39;,update_properties)
+                overall_status = False
+        return overall_status
+
+
+    def _download(self, asset_path, env, retain_dam_path):
         &#39;&#39;&#39;
         Downlods the asset to the directory represented by the env object
         &#39;&#39;&#39;
-        logging.debug(&#34;Downloading asset : &#34; + str(asset))
-        response = self.conn.rawget(asset)
-        env.store(asset, response.data.content, retain_dam_path)
+        logging.debug(&#34;Downloading asset : &#34; + str(asset_path))
+        response = self.conn.rawget(asset_path)
+        env.store(asset_path, response.data.content, retain_dam_path)
         return True
 
-    def downloadAsset(self, asset, dir=&#39;download&#39;):
+    def downloadAsset(self, asset_path, dir=&#39;download&#39;, retain_dam_path=False):
         &#39;&#39;&#39;
         Downlods the asset to the dir
         &#39;&#39;&#39;
         env = Env(dir)
-        return self._download(asset, env, False)
+        return self._download(asset_path, env, retain_dam_path)
 
-    def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;):
+    def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;, retain_dam_path=True):
         &#39;&#39;&#39;
-        Downlods all assets under the mentioned path to the dir
+        Downlods all assets under the mentioned DAM path to the dir
         &#39;&#39;&#39;
         asset_list = self.list(path)
         logging.debug(&#34;Asset list : &#34;+str(asset_list))
@@ -348,17 +571,21 @@ class Assets:
         if asset_list:
             env = Env(dir)
             for asset in asset_list:
-                status = self._download(asset, env)
+                status = self._download(asset, env, retain_dam_path)
                 overall_status &amp;= status
         return overall_status
 
-    def createFolder(self, path, ignore_error = False):
+    def createFolder(self, path, title=None, ignore_error = False):
         &#39;&#39;&#39;
-        Creates the folder specified in path in DAM
+        Creates the folder specified by the path in DAM
         &#39;&#39;&#39;
 
         parent, name = splitPath(path)
         data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+        if title:
+            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, title)
+        else:
+            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, name)
 
         logging.debug(&#39;URL - &#39;+ path)
         logging.debug(&#39;Data - &#39;+ data)
@@ -378,7 +605,7 @@ class Assets:
 
         path = trimPath(path)
         
-        self.createFolder(path, True)
+        self.createFolder(path, None, True)
         
         url = path + &#39;.createasset.html&#39;
         logging.debug(&#39;URL - &#39;+ path)
@@ -391,26 +618,33 @@ class Assets:
             logging.error(&#39;Failed due to : &#39;+response.message)
         return response.success
 
-    def uploadFolder(self, dir=&#39;upload&#39;):
+    def uploadFolder(self, dir=&#39;upload&#39;, path=&#39;/content/dam&#39;):
         &#39;&#39;&#39;
         Upload all the assets under the dir parameter. 
-        Folder structure under dir replicated onto DAM
-        Folder structure not starting with /content/dam/ pushed under /content/dam  
+        Folder structure under dir replicated onto DAM, under the path specified
         &#39;&#39;&#39;
        
         env = Env(dir)
-        path_map = cleansePaths(dir, env.listFiles() )
+        path_map = cleansePaths(dir, env.listFiles(), path )
+        overall_status = True
         for file in path_map:
             logging.debug(&#39;Uploading file - &#39;+ file)
-            self.uploadAsset(file, path_map[file])
-
+            status = self.uploadAsset(file, path_map[file])
+            overall_status &amp;= status
+        return overall_status
 
     def activate(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
-        Activate the asset specified by the path parameter
+        Activate the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
-        url = Assets.URL[&#39;Activate&#39;]
+        metadata = self.metadata(path)
+
+        if(&#39;dam:AssetContent&#39; == metadata[&#39;jcr:primaryType&#39;]) :
+            url = Assets.URL[&#39;Activate&#39;]
+        else :
+            url = Assets.URL[&#39;ActivateTree&#39;]
+
         data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
         logging.debug(&#39;URL - &#39;+ url)
@@ -425,7 +659,7 @@ class Assets:
 
     def deactivate(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
-        Deactivate the asset specified by the path parameter
+        Deactivate the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
         url = Assets.URL[&#39;Deactivate&#39;]
@@ -444,7 +678,7 @@ class Assets:
 
     def delete(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
-        Delete the asset specified by the path parameter
+        Delete the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
         url = Assets.URL[&#39;deletePage&#39;]
@@ -481,15 +715,21 @@ class Assets:
 <span>def <span class="ident">activate</span></span>(<span>self, path, force='true')</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Activate the asset specified by the path parameter</p></section>
+<section class="desc"><p>Activate the asset or folder specified by the path parameter</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">def activate(self, path, force=&#39;true&#39;):
     &#39;&#39;&#39;
-    Activate the asset specified by the path parameter
+    Activate the asset or folder specified by the path parameter
     &#39;&#39;&#39;
 
-    url = Assets.URL[&#39;Activate&#39;]
+    metadata = self.metadata(path)
+
+    if(&#39;dam:AssetContent&#39; == metadata[&#39;jcr:primaryType&#39;]) :
+        url = Assets.URL[&#39;Activate&#39;]
+    else :
+        url = Assets.URL[&#39;ActivateTree&#39;]
+
     data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
     logging.debug(&#39;URL - &#39;+ url)
@@ -504,19 +744,23 @@ class Assets:
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.createFolder"><code class="name flex">
-<span>def <span class="ident">createFolder</span></span>(<span>self, path, ignore_error=False)</span>
+<span>def <span class="ident">createFolder</span></span>(<span>self, path, title=None, ignore_error=False)</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Creates the folder specified in path in DAM</p></section>
+<section class="desc"><p>Creates the folder specified by the path in DAM</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def createFolder(self, path, ignore_error = False):
+<pre><code class="python">def createFolder(self, path, title=None, ignore_error = False):
     &#39;&#39;&#39;
-    Creates the folder specified in path in DAM
+    Creates the folder specified by the path in DAM
     &#39;&#39;&#39;
 
     parent, name = splitPath(path)
     data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+    if title:
+        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, title)
+    else:
+        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, name)
 
     logging.debug(&#39;URL - &#39;+ path)
     logging.debug(&#39;Data - &#39;+ data)
@@ -534,12 +778,12 @@ class Assets:
 <span>def <span class="ident">deactivate</span></span>(<span>self, path, force='true')</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Deactivate the asset specified by the path parameter</p></section>
+<section class="desc"><p>Deactivate the asset or folder specified by the path parameter</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">def deactivate(self, path, force=&#39;true&#39;):
     &#39;&#39;&#39;
-    Deactivate the asset specified by the path parameter
+    Deactivate the asset or folder specified by the path parameter
     &#39;&#39;&#39;
 
     url = Assets.URL[&#39;Deactivate&#39;]
@@ -560,12 +804,12 @@ class Assets:
 <span>def <span class="ident">delete</span></span>(<span>self, path, force='true')</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Delete the asset specified by the path parameter</p></section>
+<section class="desc"><p>Delete the asset or folder specified by the path parameter</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">def delete(self, path, force=&#39;true&#39;):
     &#39;&#39;&#39;
-    Delete the asset specified by the path parameter
+    Delete the asset or folder specified by the path parameter
     &#39;&#39;&#39;
 
     url = Assets.URL[&#39;deletePage&#39;]
@@ -583,30 +827,30 @@ class Assets:
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.downloadAsset"><code class="name flex">
-<span>def <span class="ident">downloadAsset</span></span>(<span>self, asset, dir='download')</span>
+<span>def <span class="ident">downloadAsset</span></span>(<span>self, asset_path, dir='download', retain_dam_path=False)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Downlods the asset to the dir</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def downloadAsset(self, asset, dir=&#39;download&#39;):
+<pre><code class="python">def downloadAsset(self, asset_path, dir=&#39;download&#39;, retain_dam_path=False):
     &#39;&#39;&#39;
     Downlods the asset to the dir
     &#39;&#39;&#39;
     env = Env(dir)
-    return self._download(asset, env, False)</code></pre>
+    return self._download(asset_path, env, retain_dam_path)</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.downloadFolder"><code class="name flex">
-<span>def <span class="ident">downloadFolder</span></span>(<span>self, path='/content/dam', dir='download')</span>
+<span>def <span class="ident">downloadFolder</span></span>(<span>self, path='/content/dam', dir='download', retain_dam_path=True)</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Downlods all assets under the mentioned path to the dir</p></section>
+<section class="desc"><p>Downlods all assets under the mentioned DAM path to the dir</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;):
+<pre><code class="python">def downloadFolder(self, path=&#39;/content/dam&#39;, dir=&#39;download&#39;, retain_dam_path=True):
     &#39;&#39;&#39;
-    Downlods all assets under the mentioned path to the dir
+    Downlods all assets under the mentioned DAM path to the dir
     &#39;&#39;&#39;
     asset_list = self.list(path)
     logging.debug(&#34;Asset list : &#34;+str(asset_list))
@@ -614,21 +858,21 @@ class Assets:
     if asset_list:
         env = Env(dir)
         for asset in asset_list:
-            status = self._download(asset, env)
+            status = self._download(asset, env, retain_dam_path)
             overall_status &amp;= status
     return overall_status</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.list"><code class="name flex">
-<span>def <span class="ident">list</span></span>(<span>self, path='/content/dam')</span>
+<span>def <span class="ident">list</span></span>(<span>self, path='/content/dam', csv_dump=False, csv_file='output/asset_list.csv')</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Get the list of all assets under the path given as parameter</p></section>
+<section class="desc"><p>Get the list of all assets under the path given as parameter and optionally write it to a CSV file</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def list(self, path=&#39;/content/dam&#39;):
+<pre><code class="python">def list(self, path=&#39;/content/dam&#39;, csv_dump=False, csv_file=&#39;output/asset_list.csv&#39;):
     &#39;&#39;&#39;
-    Get the list of all assets under the path given as parameter
+    Get the list of all assets under the path given as parameter and optionally write it to a CSV file
     &#39;&#39;&#39;
 
     asset_list = []
@@ -642,6 +886,11 @@ class Assets:
         logging.error(&#39;Error getting the assets list&#39;)
         logging.error(&#39;Failed due to : &#39;+response.message)
         logging.error(&#39;Empty list returned&#39;)
+    if csv_dump or csv_file:
+        logging.debug(&#34;Writing asset list of assets to : &#34; + csv_file)
+        dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+        env = Env(dir)
+        env.writeCSV(fname, list=asset_list)
     return asset_list</code></pre>
 </details>
 </dd>
@@ -682,7 +931,7 @@ class Assets:
 
     path = trimPath(path)
     
-    self.createFolder(path, True)
+    self.createFolder(path, None, True)
     
     url = path + &#39;.createasset.html&#39;
     logging.debug(&#39;URL - &#39;+ path)
@@ -697,26 +946,108 @@ class Assets:
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.uploadFolder"><code class="name flex">
-<span>def <span class="ident">uploadFolder</span></span>(<span>self, dir='upload')</span>
+<span>def <span class="ident">uploadFolder</span></span>(<span>self, dir='upload', path='/content/dam')</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Upload all the assets under the dir parameter.
-Folder structure under dir replicated onto DAM
-Folder structure not starting with /content/dam/ pushed under /content/dam</p></section>
+Folder structure under dir replicated onto DAM, under the path specified</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def uploadFolder(self, dir=&#39;upload&#39;):
+<pre><code class="python">def uploadFolder(self, dir=&#39;upload&#39;, path=&#39;/content/dam&#39;):
     &#39;&#39;&#39;
     Upload all the assets under the dir parameter. 
-    Folder structure under dir replicated onto DAM
-    Folder structure not starting with /content/dam/ pushed under /content/dam  
+    Folder structure under dir replicated onto DAM, under the path specified
     &#39;&#39;&#39;
    
     env = Env(dir)
-    path_map = cleansePaths(dir, env.listFiles() )
+    path_map = cleansePaths(dir, env.listFiles(), path )
+    overall_status = True
     for file in path_map:
         logging.debug(&#39;Uploading file - &#39;+ file)
-        self.uploadAsset(file, path_map[file])</code></pre>
+        status = self.uploadAsset(file, path_map[file])
+        overall_status &amp;= status
+    return overall_status</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.uprops"><code class="name flex">
+<span>def <span class="ident">uprops</span></span>(<span>self, csv_file='input/asset_props.csv')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Reads a CSV file and updates the asset perperties based on this CSV data</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def uprops(self, csv_file=&#39;input/asset_props.csv&#39;):
+    &#39;&#39;&#39;
+    Reads a CSV file and updates the asset perperties based on this CSV data 
+    &#39;&#39;&#39;
+    headers, types, csv_data = self._csvRead(csv_file)
+    if not headers:
+        logging.error(&#39;Invalid CSV input file&#39;)
+        logging.error(&#39;First row of CSV must be headers&#39;)
+        return False
+    elif ( &#34;jcr:path&#34; != headers[0]):
+        logging.error(&#39;Invalid CSV input file&#39;)
+        logging.error(&#39;The first column of header must be jcr:path property&#39;)
+        return False
+    if not types:
+        logging.error(&#39;Invalid CSV input file&#39;)
+        logging.error(&#39;Second row of CSV must be types&#39;)
+        return False
+
+    overall_status = True
+    for row in csv_data:
+
+        api_a_path = row[0][12:]
+        update_properties = json.loads(Assets.DATA[&#39;U_PROPS&#39;])
+
+        for index, header in enumerate(headers):
+            if index &gt; 0 and header:
+                update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header] = row[index]
+                update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;] = types[index]
+        
+        logging.debug(&#39;Updating with : &#39;,json.dumps(update_properties))
+        response = self.conn.post(Assets.URL[&#39;uprops&#39;], data = update_properties)
+        if not response.success :
+            logging.error(&#39;Error updating properties for asset : &#39;,update_properties)
+            overall_status = False
+    return overall_status</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.xprops"><code class="name flex">
+<span>def <span class="ident">xprops</span></span>(<span>self, path='/content/dam', props=['jcr:path', 'jcr:content/metadata/dc:title'], csv_file='output/asset_props.csv')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Extracts the metadata properties of the assets under the given path and writes it to an output csv file</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def xprops(self, path=&#39;/content/dam&#39;, props=[&#39;jcr:path&#39;,&#39;jcr:content/metadata/dc:title&#39;], csv_file=&#39;output/asset_props.csv&#39;):
+    &#39;&#39;&#39;
+    Extracts the metadata properties of the assets under the given path and writes it to an output csv file 
+    &#39;&#39;&#39;
+    asset_data = []
+    url = Assets.URL[&#39;xprops&#39;] + path
+    url = url.replace(&#39;$props&#39;, &#39; &#39;.join(props))
+    
+    logging.debug(url)
+
+    response = self.conn.get(url)
+    if response.success:
+        asset_data.append(props)
+        for asset in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+            asset_props = []
+            for key in props:
+                asset_props.append(self._metaVal(asset, key))
+            asset_data.append(asset_props)
+        logging.debug(&#34;Writing asset list of assets to : &#34; + csv_file)
+        dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+        env = Env(dir)
+        env.writeCSV(fname, data=asset_data)
+        return True
+    else:
+        logging.error(&#39;Error extracting asset properties&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Empty list returned&#39;)
+    return False</code></pre>
 </details>
 </dd>
 </dl>
@@ -753,6 +1084,8 @@ Folder structure not starting with /content/dam/ pushed under /content/dam</p></
 <li><code><a title="dampy.Assets.Assets.metadata" href="#dampy.Assets.Assets.metadata">metadata</a></code></li>
 <li><code><a title="dampy.Assets.Assets.uploadAsset" href="#dampy.Assets.Assets.uploadAsset">uploadAsset</a></code></li>
 <li><code><a title="dampy.Assets.Assets.uploadFolder" href="#dampy.Assets.Assets.uploadFolder">uploadFolder</a></code></li>
+<li><code><a title="dampy.Assets.Assets.uprops" href="#dampy.Assets.Assets.uprops">uprops</a></code></li>
+<li><code><a title="dampy.Assets.Assets.xprops" href="#dampy.Assets.Assets.xprops">xprops</a></code></li>
 </ul>
 </li>
 </ul>

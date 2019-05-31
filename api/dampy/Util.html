@@ -24,6 +24,8 @@
 <summary>Source code</summary>
 <pre><code class="python"># ashokkumar.ta@gmail.com / 24-May-2019
 
+import os
+
 def trimPath(path):
     &#39;&#39;&#39;
     Removes the trailing / from the path given
@@ -45,7 +47,7 @@ def splitPath(path):
     parent = path[:path.rindex(&#39;/&#39;)]
     return parent,name
 
-def cleansePaths(dir, files):
+def cleansePaths(dir, files, path):
     &#39;&#39;&#39;
     Removes the dir prefix from the names of the files, check each file if it starts with 
     /content/dam and if not pre-pends /content/dam to the file
@@ -55,10 +57,19 @@ def cleansePaths(dir, files):
     for file in files:
         p, v = file.split(dir, 1)
         if not v.startswith(&#39;/content/dam/&#39;):
-            v = &#39;/content/dam&#39; + v
+            v = path + v
         parent, name = splitPath(v)
         c_files[file] = parent
-    return c_files</code></pre>
+    return c_files
+
+def dir_n_file(path, ext):
+    base = os.path.basename(path)
+    dir = os.path.dirname(path)
+    if not base.endswith(&#39;.&#39;+ext):
+        base += &#39;.&#39;+ext
+    if not dir:
+        dir = &#39;.&#39;
+    return dir, base</code></pre>
 </details>
 </section>
 <section>
@@ -69,7 +80,7 @@ def cleansePaths(dir, files):
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="dampy.Util.cleansePaths"><code class="name flex">
-<span>def <span class="ident">cleansePaths</span></span>(<span>dir, files)</span>
+<span>def <span class="ident">cleansePaths</span></span>(<span>dir, files, path)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Removes the dir prefix from the names of the files, check each file if it starts with
@@ -77,7 +88,7 @@ def cleansePaths(dir, files):
 Finally takes the parent path of the files and retuns a dict mapping files given to the parent path</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def cleansePaths(dir, files):
+<pre><code class="python">def cleansePaths(dir, files, path):
     &#39;&#39;&#39;
     Removes the dir prefix from the names of the files, check each file if it starts with 
     /content/dam and if not pre-pends /content/dam to the file
@@ -87,10 +98,27 @@ Finally takes the parent path of the files and retuns a dict mapping files given
     for file in files:
         p, v = file.split(dir, 1)
         if not v.startswith(&#39;/content/dam/&#39;):
-            v = &#39;/content/dam&#39; + v
+            v = path + v
         parent, name = splitPath(v)
         c_files[file] = parent
     return c_files</code></pre>
+</details>
+</dd>
+<dt id="dampy.Util.dir_n_file"><code class="name flex">
+<span>def <span class="ident">dir_n_file</span></span>(<span>path, ext)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def dir_n_file(path, ext):
+    base = os.path.basename(path)
+    dir = os.path.dirname(path)
+    if not base.endswith(&#39;.&#39;+ext):
+        base += &#39;.&#39;+ext
+    if not dir:
+        dir = &#39;.&#39;
+    return dir, base</code></pre>
 </details>
 </dd>
 <dt id="dampy.Util.splitPath"><code class="name flex">
@@ -155,6 +183,7 @@ Finally takes the parent path of the files and retuns a dict mapping files given
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="dampy.Util.cleansePaths" href="#dampy.Util.cleansePaths">cleansePaths</a></code></li>
+<li><code><a title="dampy.Util.dir_n_file" href="#dampy.Util.dir_n_file">dir_n_file</a></code></li>
 <li><code><a title="dampy.Util.splitPath" href="#dampy.Util.splitPath">splitPath</a></code></li>
 <li><code><a title="dampy.Util.trimPath" href="#dampy.Util.trimPath">trimPath</a></code></li>
 </ul>

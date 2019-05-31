@@ -2,6 +2,7 @@
 
 import os
 import logging
+import csv
 
 class Env:
     '''
@@ -56,3 +57,16 @@ class Env:
                 files.append(os.path.join(r, file).replace("\\","/"))
         return files
 
+    def writeCSV(self, fname, list=None, data=None):
+        '''
+        Writes the data to the file under the directory represented by this env
+        '''
+        full_path = self._ensure(fname, False)
+        with open(full_path, 'w', newline='') as csvout:
+            wr = csv.writer(csvout, dialect='excel')
+            if list:
+                for v in list:
+                    wr.writerow([v])
+            elif data:
+                for v in data:
+                    wr.writerow(v)
