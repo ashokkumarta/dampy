@@ -3,13 +3,13 @@ from distutils.core import setup
 setup(
   name = 'dampy',        
   packages = ['dampy'],  
-  version = '0.4',      
+  version = '0.5',      
   license='MIT', 
   description = 'A python tool to easily work with Adobe Experience Manager (AEM) DAM. ',   
   author = 'Ashokkumar T.A',                  
   author_email = 'ashokkumar.ta@gmail.com',   
   url = 'https://github.com/ashokkumarta/dampy',   
-  download_url = 'https://github.com/ashokkumarta/dampy/archive/0.4.tar.gz', 
+  download_url = 'https://github.com/ashokkumarta/dampy/archive/0.5.tar.gz', 
   keywords = ['AEM', 'DAM', 'Python tool', 'list', 'create', 'upload', 'download', 'activate', 'deactivate', 'delete'],   
   install_requires=[  
       'requests',          
