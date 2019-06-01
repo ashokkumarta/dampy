@@ -3,6 +3,7 @@
 import requests, json
 from requests.auth import HTTPBasicAuth
 import logging
+import csv, ast
 
 from dampy.Env import Env
 from dampy.Util import *
@@ -33,7 +34,7 @@ class Assets:
             "./jcr:content/jcr:primaryType": "nt:unstructured", \
             "/jcr:content/jcr:title":"$title", \
             ":name":"$name" }',
-        'U_PROPS' : '{"_charset_": "utf-8", "dam:bulkUpdate": "true", "mode": "hard"}'
+        'U_PROPS' : '[("_charset_", "utf-8"), ("dam:bulkUpdate", "true"), ("mode", "hard")]'
 
     }
 
@@ -105,8 +106,9 @@ class Assets:
         csv_data = []
 
         with open(csv_file,'r') as cFile:
-            for row in cFile:
-                csv_data.append(row.strip().split(","))
+            csv_reader = csv.reader(cFile, delimiter=',')
+            for row in csv_reader:
+                csv_data.append(row)
 
         if csv_data and header :
             headers = csv_data.pop(0)
@@ -165,12 +167,18 @@ class Assets:
         for row in csv_data:
 
             api_a_path = row[0][12:]
-            update_properties = json.loads(Assets.DATA['U_PROPS'])
+            update_properties = ast.literal_eval(Assets.DATA['U_PROPS'])
 
             for index, header in enumerate(headers):
                 if index > 0 and header:
-                    update_properties['.' + api_a_path + '/' + header] = row[index]
-                    update_properties['.' + api_a_path + '/' + header + '@TypeHint'] = types[index]
+                    if '[]' in types[index]:
+                        vals = ast.literal_eval(row[index])
+                        for v in vals:
+                            update_properties.append(('.' + api_a_path + '/' + header, v))
+                    else:
+                        update_properties.append(('.' + api_a_path + '/' + header, row[index]))
+
+                    update_properties.append(('.' + api_a_path + '/' + header + '@TypeHint', types[index]))
             
             logging.debug('Updating with : ',json.dumps(update_properties))
             response = self.conn.post(Assets.URL['uprops'], data = update_properties)

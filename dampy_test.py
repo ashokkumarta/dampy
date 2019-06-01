@@ -101,6 +101,11 @@ if __name__== "__main__":
     status = aem.dam.uprops('input/my_asset_update.csv')
     print('Status : '+str(status))
 
+    # Update properties of assets based on an input CSV file
+    print ('Update properties of assets based on an input CSV file, including tag values')
+    status = aem.dam.uprops('input/asset_props_tags.csv')
+    print('Status : '+str(status))
+
     # Extract specific properties of assets under the given path and write it to a CSV file
     print ('Extract specific properties of assets under the given path and write it to a CSV file')
     status = aem.dam.xprops('/content/dam/dampy/test', ['jcr:path', 'jcr:content/metadata/dc:title','jcr:content/metadata/jcr:title'], 'output/after_my_update.csv')

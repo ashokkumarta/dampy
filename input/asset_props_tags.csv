@@ -1,0 +1,4 @@
+jcr:path,jcr:content/metadata/dc:title,jcr:content/metadata/cq:tags
+String,String,String[]
+/content/dam/dampy/test/samples/Shorts_men.jpg,With Tags,"['we-retail:activity/biking', 'we-retail:activity/skiing']"
+/content/dam/Shorts_men.jpg,Another with tags,['we-retail:activity/biking']
