@@ -27,6 +27,8 @@
 import requests, json
 from requests.auth import HTTPBasicAuth
 import logging
+import csv, ast
+import hashlib
 
 from dampy.Env import Env
 from dampy.Util import *
@@ -37,27 +39,41 @@ class Assets:
 
     CFG = {
         &#39;assets_key&#39;: &#39;hits&#39;,
-        &#39;path_key&#39;: &#39;jcr:path&#39;
+        &#39;path_key&#39;: &#39;jcr:path&#39;, 
+        &#39;sha1_key&#39;: &#39;jcr:content/metadata/dam:sha1&#39;
     }
 
     URL = {
         &#39;list&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=jcr:path&amp;p.nodedepth=-1&amp;path=&#39;,
         &#39;xprops&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=$props&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;fetchFolderTree&#39;: &#39;/bin/querybuilder.json?type=sling:Folder&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=$props&amp;p.nodedepth=-1&amp;path=&#39;,
         &#39;uprops&#39;: &#39;/content/dam.html&#39;,
         &#39;metadata_suffix&#39;: &#39;/jcr:content.&#39;,
         &#39;metadata_type&#39;: &#39;.json&#39;,
-        &#39;Activate&#39;: &#39;/bin/replicate.json&#39;,
-        &#39;Deactivate&#39;: &#39;/bin/replicate.json&#39;,
-        &#39;deletePage&#39;: &#39;/bin/wcmcommand&#39;,
-        &#39;ActivateTree&#39;: &#39;/libs/replication/treeactivation.html&#39;
+        &#39;activate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;deactivate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;move&#39;: &#39;/bin/wcmcommand&#39;,
+        &#39;updateFolderTitle&#39;: &#39;/content/dam&#39;,
+        &#39;delete&#39;: &#39;/bin/wcmcommand&#39;,
+        &#39;exists&#39;: &#39;/bin/querybuilder.json?p.hits=selective&amp;path=/content/dam&amp;p.properties=jcr:path&amp;p.limit=-1&amp;property=jcr:content/metadata/dam:sha1&amp;property.operation=equals&amp;property.value=&#39;,
+        &#39;duplicates&#39;: &#39;/bin/querybuilder.json?p.hits=selective&amp;p.properties=jcr:path jcr:content/metadata/dam:sha1&amp;p.limit=-1&amp;property=jcr:content/metadata/dam:sha1&amp;property.operation=exists&amp;path=&#39;,
+        &#39;activateTree&#39;: &#39;/libs/replication/treeactivation.html&#39;
     }
 
     DATA = {
-        &#39;CREATE_FOLDER&#39; : &#39;{&#34;./jcr:primaryType&#34;: &#34;sling:OrderedFolder&#34;, \
+        &#39;createFolder&#39; : &#39;{&#34;./jcr:primaryType&#34;: &#34;sling:OrderedFolder&#34;, \
             &#34;./jcr:content/jcr:primaryType&#34;: &#34;nt:unstructured&#34;, \
-            &#34;/jcr:content/jcr:title&#34;:&#34;$title&#34;, \
+            &#34;./jcr:content/jcr:title&#34;:&#34;$title&#34;, \
             &#34;:name&#34;:&#34;$name&#34; }&#39;,
-        &#39;U_PROPS&#39; : &#39;{&#34;_charset_&#34;: &#34;utf-8&#34;, &#34;dam:bulkUpdate&#34;: &#34;true&#34;, &#34;mode&#34;: &#34;hard&#34;}&#39;
+        &#39;move&#39; : &#39;{&#34;cmd&#34;: &#34;movePage&#34;, \
+            &#34;integrity&#34;: &#34;true&#34;, \
+            &#34;srcPath&#34;:&#34;$srcPath&#34;, \
+            &#34;destParentPath&#34;:&#34;$destParentPath&#34;, \
+            &#34;destName&#34;:&#34;$destName&#34; }&#39;,
+        &#39;updateFolderTitle&#39; : &#39;{&#34;:operation&#34;: &#34;dam.share.folder&#34;, \
+            &#34;path&#34;:&#34;$path&#34;, \
+            &#34;title&#34;:&#34;$title&#34; }&#39;,
+        &#39;uprops&#39; : &#39;[(&#34;_charset_&#34;, &#34;utf-8&#34;), (&#34;dam:bulkUpdate&#34;, &#34;true&#34;), (&#34;mode&#34;, &#34;hard&#34;)]&#39;
 
     }
 
@@ -74,9 +90,12 @@ class Assets:
         &#39;&#39;&#39;
     
         asset_list = []
-        logging.debug(Assets.URL[&#39;list&#39;])
         url = Assets.URL[&#39;list&#39;] + path
+
+        logging.debug(&#39;URL : &#39;+url)
+
         response = self.conn.get(url)
+
         if response.success:
             for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
                 asset_list.append(e[Assets.CFG[&#39;path_key&#39;]])    
@@ -129,8 +148,9 @@ class Assets:
         csv_data = []
 
         with open(csv_file,&#39;r&#39;) as cFile:
-            for row in cFile:
-                csv_data.append(row.strip().split(&#34;,&#34;))
+            csv_reader = csv.reader(cFile, delimiter=&#39;,&#39;)
+            for row in csv_reader:
+                csv_data.append(row)
 
         if csv_data and header :
             headers = csv_data.pop(0)
@@ -189,14 +209,20 @@ class Assets:
         for row in csv_data:
 
             api_a_path = row[0][12:]
-            update_properties = json.loads(Assets.DATA[&#39;U_PROPS&#39;])
+            update_properties = ast.literal_eval(Assets.DATA[&#39;uprops&#39;])
 
             for index, header in enumerate(headers):
                 if index &gt; 0 and header:
-                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header] = row[index]
-                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;] = types[index]
+                    if &#39;[]&#39; in types[index]:
+                        vals = ast.literal_eval(row[index])
+                        for v in vals:
+                            update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header, v))
+                    else:
+                        update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header, row[index]))
+
+                    update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;, types[index]))
             
-            logging.debug(&#39;Updating with : &#39;,json.dumps(update_properties))
+            logging.debug(&#39;Updating with : &#39; + json.dumps(update_properties))
             response = self.conn.post(Assets.URL[&#39;uprops&#39;], data = update_properties)
             if not response.success :
                 logging.error(&#39;Error updating properties for asset : &#39;,update_properties)
@@ -240,22 +266,125 @@ class Assets:
         &#39;&#39;&#39;
 
         parent, name = splitPath(path)
-        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+        n_name=namify(name)
+        n_path=namify(path)
+
+        data = Assets.DATA[&#39;createFolder&#39;].replace(&#39;$name&#39;, n_name)
         if title:
-            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, title)
+            data = data.replace(&#39;$title&#39;, title)
         else:
-            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, name)
+            data = data.replace(&#39;$title&#39;, name)
 
-        logging.debug(&#39;URL - &#39;+ path)
-        logging.debug(&#39;Data - &#39;+ data)
+        data = json.loads(data)
 
-        response = self.conn.post(path, data = data)            
+        logging.debug(&#39;URL - &#39;+ n_path)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(n_path, data = data)            
 
         if not (ignore_error or response.success):
             logging.error(&#39;Error creating folder&#39;)
             logging.error(&#39;Failed due to : &#39;+response.message)
             logging.error(&#39;Check if the folder already exists&#39;)
         return response.success
+
+    def createFolderTree(self,  path=&#39;/content/dam&#39;, srcDir=None, srcList=None, ignore_error = False):
+        &#39;&#39;&#39;
+        Creates the folder tree structure in DAM under the given path, reflecting the structure in local dir 
+        &#39;&#39;&#39;
+        dirList = []
+
+        if srcList:
+            if isinstance(srcList, list):
+               dirList += cleanseDirList(&#39;&#39;, srcList, path )
+            elif isinstance(srcList, str):
+                headers, types, csv_data = self._csvRead(srcList, False, False)
+                for row in csv_data:
+                    dirList += cleanseDirList(&#39;&#39;, row, path )
+            else:
+                logging.error(&#39;Invalid input for srcList&#39;)
+
+        if srcDir:
+            env = Env(srcDir)
+            dirList += cleanseDirList(srcDir, env.listDirs(), path )
+
+        logging.debug(&#39;Creating Folders for - &#39;+ str(dirList))
+        overall_status = True
+        for dir in dirList:
+            logging.debug(&#39;Creating Folder - &#39;+ dir)
+            status = self.createFolder(dir)
+            overall_status &amp;= status
+        return overall_status
+
+    def fetchFolderTree(self, path=&#39;/content/dam&#39;, csv_file=&#39;output/folder_tree.csv&#39;, props=[&#39;jcr:path&#39;, &#39;jcr:content/jcr:title&#39;]):
+        &#39;&#39;&#39;
+        Fetches the folder structure under the given path and writes it to an output csv file 
+        &#39;&#39;&#39;
+        folder_data = []
+        url = Assets.URL[&#39;fetchFolderTree&#39;] + path
+        url = url.replace(&#39;$props&#39;, &#39; &#39;.join(props))
+        
+        logging.debug(url)
+
+        response = self.conn.get(url)
+        if response.success:
+            folder_data.append(props)
+            for folder in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                folder_props = []
+                for key in props:
+                    folder_props.append(self._metaVal(folder, key))
+                folder_data.append(folder_props)
+            logging.debug(&#34;Writing folder list to : &#34; + csv_file)
+            dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+            env = Env(dir)
+            env.writeCSV(fname, data=folder_data)
+        else:
+            logging.error(&#39;Error fetching folder list&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+        return folder_data
+
+
+    def updateFolderTitle(self, path, newTitle):
+        &#39;&#39;&#39;
+        Updates the folder title with the new value provided
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;updateFolderTitle&#39;]
+        data = json.loads(Assets.DATA[&#39;updateFolderTitle&#39;].replace(&#39;$path&#39;, path).replace(&#39;$title&#39;,newTitle))
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error updating folder title&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+    def restructure(self, inputCSV=&#39;input/restructure.csv&#39;):
+        &#39;&#39;&#39;
+        Restructures the DAM folder structure based on the input CSV file 
+        &#39;&#39;&#39;
+
+        headers, types, csv_data = self._csvRead(inputCSV, True, False)
+
+        overall_status = True
+        for row in csv_data:
+            logging.debug(&#39;Processing row - &#39;+ str(row))
+            if(&#39;Move&#39; == row[0]):
+                srcPath = row[1]
+                destPath = row[3]
+                dparent, dname = splitPath(destPath)
+                status = self.move(srcPath, dparent, dname)
+                if(row[1] != row[4]):
+                    self.updateFolderTitle(destPath,row[4])
+            elif (&#39;Delete&#39; == row[0]):
+                status = self.delete(row[1])
+            overall_status &amp;= status
+        return overall_status
+
 
     def uploadAsset(self, file, path=&#39;/content/dam&#39;):
         &#39;&#39;&#39;
@@ -292,6 +421,33 @@ class Assets:
             overall_status &amp;= status
         return overall_status
 
+
+    def move(self, srcPath, destPath, newName=None):
+        &#39;&#39;&#39;
+        Move the asset or folder from the srcPath to the destPath
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;move&#39;]
+        data = Assets.DATA[&#39;move&#39;].replace(&#39;$srcPath&#39;, srcPath).replace(&#39;$destParentPath&#39;,destPath)
+        if newName:
+            data = data.replace(&#39;$destName&#39;, newName)
+        else:
+            parent, name = splitPath(srcPath)
+            data = data.replace(&#39;$destName&#39;, name)
+
+        data = json.loads(data)
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error moving &#39; + srcPath + &#39; to &#39; + destPath)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+
     def activate(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
         Activate the asset or folder specified by the path parameter
@@ -300,9 +456,9 @@ class Assets:
         metadata = self.metadata(path)
 
         if(&#39;dam:AssetContent&#39; == metadata[&#39;jcr:primaryType&#39;]) :
-            url = Assets.URL[&#39;Activate&#39;]
+            url = Assets.URL[&#39;activate&#39;]
         else :
-            url = Assets.URL[&#39;ActivateTree&#39;]
+            url = Assets.URL[&#39;activateTree&#39;]
 
         data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
@@ -321,7 +477,7 @@ class Assets:
         Deactivate the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
-        url = Assets.URL[&#39;Deactivate&#39;]
+        url = Assets.URL[&#39;deactivate&#39;]
         data = {&#39;cmd&#39;: &#39;Deactivate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
         logging.debug(&#39;URL - &#39;+ url)
@@ -340,7 +496,7 @@ class Assets:
         Delete the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
-        url = Assets.URL[&#39;deletePage&#39;]
+        url = Assets.URL[&#39;delete&#39;]
         data = {&#39;cmd&#39;: &#39;deletePage&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
         logging.debug(&#39;URL - &#39;+ url)
@@ -351,7 +507,115 @@ class Assets:
         if not response.success:
             logging.error(&#39;Error Deactivating the asset&#39;)
             logging.error(&#39;Failed due to : &#39;+response.message)
-        return response.success</code></pre>
+        return response.success
+
+    def activateList(self, listSrc):
+        &#39;&#39;&#39;
+        Activate all the assets provided by the listSrc.
+        listSrc can be a list of all assets to activate or the file name containing the list of assets
+        &#39;&#39;&#39;
+
+        return self._perform(self.activate, listSrc)
+
+    def deactivateList(self, listSrc):
+        &#39;&#39;&#39;
+        Deactivate all the assets provided by the listSrc.
+        listSrc can be a list of all assets to deactivate or the file name containing the list of assets
+        &#39;&#39;&#39;
+
+        return self._perform(self.deactivate, listSrc)
+
+    def deleteList(self, listSrc):
+        &#39;&#39;&#39;
+        Delete all the assets provided by the listSrc.
+        listSrc can be a list of all assets to delete or the file name containing the list of assets
+        &#39;&#39;&#39;
+
+        return self._perform(self.delete, listSrc)
+
+
+    def _perform(self,  action, listSrc):
+        &#39;&#39;&#39;
+        Creates the folder tree structure in DAM under the given path, reflecting the structure in local dir 
+        &#39;&#39;&#39;
+        assetList = []
+
+        if listSrc:
+            if isinstance(listSrc, list):
+               assetList += cleanseDirList(&#39;&#39;, listSrc, &#39;/content/dam&#39; )
+            elif isinstance(listSrc, str):
+                headers, types, csv_data = self._csvRead(listSrc, False, False)
+                logging.debug(&#39;Asset list from &#39; + listSrc + &#39; - &#39;+ str(csv_data))
+                for row in csv_data:
+                    assetList += cleanseDirList(&#39;&#39;, row, &#39;/content/dam&#39; )
+            else:
+                logging.error(&#39;Invalid input for listSrc&#39;)
+
+        logging.debug(&#39;Performing &#39;+ str(action) +&#39; for - &#39;+ str(assetList))
+        overall_status = True
+        for asset in assetList:
+            logging.debug(&#39;Processing asset - &#39;+ asset)
+            overall_status &amp;= action(asset)
+        return overall_status
+
+    def exists(self, asset):
+        &#39;&#39;&#39;
+        Check if the file is available in DAM and returns the list of paths at which the file is available 
+        &#39;&#39;&#39;
+
+        fcontent = open(asset, &#39;rb&#39;).read()
+        _sha1 = hashlib.sha1(fcontent).hexdigest()
+
+        url = Assets.URL[&#39;exists&#39;] + _sha1
+
+        logging.debug(&#39;URL - &#39;+ url)
+
+        response = self.conn.get(url)
+
+        duplicates = []
+
+        if response.success:
+            for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                duplicates.append(e[Assets.CFG[&#39;path_key&#39;]])    
+        else:
+            logging.error(&#39;Error checking if the given asset exists in DAM&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+
+        return duplicates
+
+    def duplicates(self, path=&#39;/content/dam&#39;):
+        &#39;&#39;&#39;
+        Find all the duplicate binaries under the given path and returns it. Returns empty if no duplicates are identified 
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;duplicates&#39;] + path
+
+        logging.debug(&#39;URL - &#39;+ url)
+
+        response = self.conn.get(url)
+
+        duplicates = {}
+        removals = []
+
+        if response.success:
+            for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                sha_val = self._metaVal(e, Assets.CFG[&#39;sha1_key&#39;])
+                if sha_val in duplicates:
+                    duplicates[sha_val].append(e[Assets.CFG[&#39;path_key&#39;]])
+                else:
+                    duplicates[sha_val] = [e[Assets.CFG[&#39;path_key&#39;]]]
+            for k in duplicates:
+                if len(duplicates[k]) &lt;=1:
+                    removals.append(k)
+            for k in removals:
+                duplicates.pop(k)
+        else:
+            logging.error(&#39;Error checking for duplicates in DAM&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+
+        return duplicates</code></pre>
 </details>
 </section>
 <section>
@@ -378,27 +642,41 @@ class Assets:
 
     CFG = {
         &#39;assets_key&#39;: &#39;hits&#39;,
-        &#39;path_key&#39;: &#39;jcr:path&#39;
+        &#39;path_key&#39;: &#39;jcr:path&#39;, 
+        &#39;sha1_key&#39;: &#39;jcr:content/metadata/dam:sha1&#39;
     }
 
     URL = {
         &#39;list&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=jcr:path&amp;p.nodedepth=-1&amp;path=&#39;,
         &#39;xprops&#39;: &#39;/bin/querybuilder.json?type=dam:Asset&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=$props&amp;p.nodedepth=-1&amp;path=&#39;,
+        &#39;fetchFolderTree&#39;: &#39;/bin/querybuilder.json?type=sling:Folder&amp;p.limit=-1&amp;p.hits=selective&amp;p.properties=$props&amp;p.nodedepth=-1&amp;path=&#39;,
         &#39;uprops&#39;: &#39;/content/dam.html&#39;,
         &#39;metadata_suffix&#39;: &#39;/jcr:content.&#39;,
         &#39;metadata_type&#39;: &#39;.json&#39;,
-        &#39;Activate&#39;: &#39;/bin/replicate.json&#39;,
-        &#39;Deactivate&#39;: &#39;/bin/replicate.json&#39;,
-        &#39;deletePage&#39;: &#39;/bin/wcmcommand&#39;,
-        &#39;ActivateTree&#39;: &#39;/libs/replication/treeactivation.html&#39;
+        &#39;activate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;deactivate&#39;: &#39;/bin/replicate.json&#39;,
+        &#39;move&#39;: &#39;/bin/wcmcommand&#39;,
+        &#39;updateFolderTitle&#39;: &#39;/content/dam&#39;,
+        &#39;delete&#39;: &#39;/bin/wcmcommand&#39;,
+        &#39;exists&#39;: &#39;/bin/querybuilder.json?p.hits=selective&amp;path=/content/dam&amp;p.properties=jcr:path&amp;p.limit=-1&amp;property=jcr:content/metadata/dam:sha1&amp;property.operation=equals&amp;property.value=&#39;,
+        &#39;duplicates&#39;: &#39;/bin/querybuilder.json?p.hits=selective&amp;p.properties=jcr:path jcr:content/metadata/dam:sha1&amp;p.limit=-1&amp;property=jcr:content/metadata/dam:sha1&amp;property.operation=exists&amp;path=&#39;,
+        &#39;activateTree&#39;: &#39;/libs/replication/treeactivation.html&#39;
     }
 
     DATA = {
-        &#39;CREATE_FOLDER&#39; : &#39;{&#34;./jcr:primaryType&#34;: &#34;sling:OrderedFolder&#34;, \
+        &#39;createFolder&#39; : &#39;{&#34;./jcr:primaryType&#34;: &#34;sling:OrderedFolder&#34;, \
             &#34;./jcr:content/jcr:primaryType&#34;: &#34;nt:unstructured&#34;, \
-            &#34;/jcr:content/jcr:title&#34;:&#34;$title&#34;, \
+            &#34;./jcr:content/jcr:title&#34;:&#34;$title&#34;, \
             &#34;:name&#34;:&#34;$name&#34; }&#39;,
-        &#39;U_PROPS&#39; : &#39;{&#34;_charset_&#34;: &#34;utf-8&#34;, &#34;dam:bulkUpdate&#34;: &#34;true&#34;, &#34;mode&#34;: &#34;hard&#34;}&#39;
+        &#39;move&#39; : &#39;{&#34;cmd&#34;: &#34;movePage&#34;, \
+            &#34;integrity&#34;: &#34;true&#34;, \
+            &#34;srcPath&#34;:&#34;$srcPath&#34;, \
+            &#34;destParentPath&#34;:&#34;$destParentPath&#34;, \
+            &#34;destName&#34;:&#34;$destName&#34; }&#39;,
+        &#39;updateFolderTitle&#39; : &#39;{&#34;:operation&#34;: &#34;dam.share.folder&#34;, \
+            &#34;path&#34;:&#34;$path&#34;, \
+            &#34;title&#34;:&#34;$title&#34; }&#39;,
+        &#39;uprops&#39; : &#39;[(&#34;_charset_&#34;, &#34;utf-8&#34;), (&#34;dam:bulkUpdate&#34;, &#34;true&#34;), (&#34;mode&#34;, &#34;hard&#34;)]&#39;
 
     }
 
@@ -415,9 +693,12 @@ class Assets:
         &#39;&#39;&#39;
     
         asset_list = []
-        logging.debug(Assets.URL[&#39;list&#39;])
         url = Assets.URL[&#39;list&#39;] + path
+
+        logging.debug(&#39;URL : &#39;+url)
+
         response = self.conn.get(url)
+
         if response.success:
             for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
                 asset_list.append(e[Assets.CFG[&#39;path_key&#39;]])    
@@ -470,8 +751,9 @@ class Assets:
         csv_data = []
 
         with open(csv_file,&#39;r&#39;) as cFile:
-            for row in cFile:
-                csv_data.append(row.strip().split(&#34;,&#34;))
+            csv_reader = csv.reader(cFile, delimiter=&#39;,&#39;)
+            for row in csv_reader:
+                csv_data.append(row)
 
         if csv_data and header :
             headers = csv_data.pop(0)
@@ -530,14 +812,20 @@ class Assets:
         for row in csv_data:
 
             api_a_path = row[0][12:]
-            update_properties = json.loads(Assets.DATA[&#39;U_PROPS&#39;])
+            update_properties = ast.literal_eval(Assets.DATA[&#39;uprops&#39;])
 
             for index, header in enumerate(headers):
                 if index &gt; 0 and header:
-                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header] = row[index]
-                    update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;] = types[index]
+                    if &#39;[]&#39; in types[index]:
+                        vals = ast.literal_eval(row[index])
+                        for v in vals:
+                            update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header, v))
+                    else:
+                        update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header, row[index]))
+
+                    update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;, types[index]))
             
-            logging.debug(&#39;Updating with : &#39;,json.dumps(update_properties))
+            logging.debug(&#39;Updating with : &#39; + json.dumps(update_properties))
             response = self.conn.post(Assets.URL[&#39;uprops&#39;], data = update_properties)
             if not response.success :
                 logging.error(&#39;Error updating properties for asset : &#39;,update_properties)
@@ -581,22 +869,125 @@ class Assets:
         &#39;&#39;&#39;
 
         parent, name = splitPath(path)
-        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+        n_name=namify(name)
+        n_path=namify(path)
+
+        data = Assets.DATA[&#39;createFolder&#39;].replace(&#39;$name&#39;, n_name)
         if title:
-            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, title)
+            data = data.replace(&#39;$title&#39;, title)
         else:
-            data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, name)
+            data = data.replace(&#39;$title&#39;, name)
 
-        logging.debug(&#39;URL - &#39;+ path)
-        logging.debug(&#39;Data - &#39;+ data)
+        data = json.loads(data)
 
-        response = self.conn.post(path, data = data)            
+        logging.debug(&#39;URL - &#39;+ n_path)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(n_path, data = data)            
 
         if not (ignore_error or response.success):
             logging.error(&#39;Error creating folder&#39;)
             logging.error(&#39;Failed due to : &#39;+response.message)
             logging.error(&#39;Check if the folder already exists&#39;)
         return response.success
+
+    def createFolderTree(self,  path=&#39;/content/dam&#39;, srcDir=None, srcList=None, ignore_error = False):
+        &#39;&#39;&#39;
+        Creates the folder tree structure in DAM under the given path, reflecting the structure in local dir 
+        &#39;&#39;&#39;
+        dirList = []
+
+        if srcList:
+            if isinstance(srcList, list):
+               dirList += cleanseDirList(&#39;&#39;, srcList, path )
+            elif isinstance(srcList, str):
+                headers, types, csv_data = self._csvRead(srcList, False, False)
+                for row in csv_data:
+                    dirList += cleanseDirList(&#39;&#39;, row, path )
+            else:
+                logging.error(&#39;Invalid input for srcList&#39;)
+
+        if srcDir:
+            env = Env(srcDir)
+            dirList += cleanseDirList(srcDir, env.listDirs(), path )
+
+        logging.debug(&#39;Creating Folders for - &#39;+ str(dirList))
+        overall_status = True
+        for dir in dirList:
+            logging.debug(&#39;Creating Folder - &#39;+ dir)
+            status = self.createFolder(dir)
+            overall_status &amp;= status
+        return overall_status
+
+    def fetchFolderTree(self, path=&#39;/content/dam&#39;, csv_file=&#39;output/folder_tree.csv&#39;, props=[&#39;jcr:path&#39;, &#39;jcr:content/jcr:title&#39;]):
+        &#39;&#39;&#39;
+        Fetches the folder structure under the given path and writes it to an output csv file 
+        &#39;&#39;&#39;
+        folder_data = []
+        url = Assets.URL[&#39;fetchFolderTree&#39;] + path
+        url = url.replace(&#39;$props&#39;, &#39; &#39;.join(props))
+        
+        logging.debug(url)
+
+        response = self.conn.get(url)
+        if response.success:
+            folder_data.append(props)
+            for folder in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                folder_props = []
+                for key in props:
+                    folder_props.append(self._metaVal(folder, key))
+                folder_data.append(folder_props)
+            logging.debug(&#34;Writing folder list to : &#34; + csv_file)
+            dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+            env = Env(dir)
+            env.writeCSV(fname, data=folder_data)
+        else:
+            logging.error(&#39;Error fetching folder list&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+        return folder_data
+
+
+    def updateFolderTitle(self, path, newTitle):
+        &#39;&#39;&#39;
+        Updates the folder title with the new value provided
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;updateFolderTitle&#39;]
+        data = json.loads(Assets.DATA[&#39;updateFolderTitle&#39;].replace(&#39;$path&#39;, path).replace(&#39;$title&#39;,newTitle))
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error updating folder title&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+    def restructure(self, inputCSV=&#39;input/restructure.csv&#39;):
+        &#39;&#39;&#39;
+        Restructures the DAM folder structure based on the input CSV file 
+        &#39;&#39;&#39;
+
+        headers, types, csv_data = self._csvRead(inputCSV, True, False)
+
+        overall_status = True
+        for row in csv_data:
+            logging.debug(&#39;Processing row - &#39;+ str(row))
+            if(&#39;Move&#39; == row[0]):
+                srcPath = row[1]
+                destPath = row[3]
+                dparent, dname = splitPath(destPath)
+                status = self.move(srcPath, dparent, dname)
+                if(row[1] != row[4]):
+                    self.updateFolderTitle(destPath,row[4])
+            elif (&#39;Delete&#39; == row[0]):
+                status = self.delete(row[1])
+            overall_status &amp;= status
+        return overall_status
+
 
     def uploadAsset(self, file, path=&#39;/content/dam&#39;):
         &#39;&#39;&#39;
@@ -633,6 +1024,33 @@ class Assets:
             overall_status &amp;= status
         return overall_status
 
+
+    def move(self, srcPath, destPath, newName=None):
+        &#39;&#39;&#39;
+        Move the asset or folder from the srcPath to the destPath
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;move&#39;]
+        data = Assets.DATA[&#39;move&#39;].replace(&#39;$srcPath&#39;, srcPath).replace(&#39;$destParentPath&#39;,destPath)
+        if newName:
+            data = data.replace(&#39;$destName&#39;, newName)
+        else:
+            parent, name = splitPath(srcPath)
+            data = data.replace(&#39;$destName&#39;, name)
+
+        data = json.loads(data)
+
+        logging.debug(&#39;URL - &#39;+ url)
+        logging.debug(&#39;Data - &#39;+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not response.success:
+            logging.error(&#39;Error moving &#39; + srcPath + &#39; to &#39; + destPath)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+        return response.success
+
+
     def activate(self, path, force=&#39;true&#39;):
         &#39;&#39;&#39;
         Activate the asset or folder specified by the path parameter
@@ -641,9 +1059,9 @@ class Assets:
         metadata = self.metadata(path)
 
         if(&#39;dam:AssetContent&#39; == metadata[&#39;jcr:primaryType&#39;]) :
-            url = Assets.URL[&#39;Activate&#39;]
+            url = Assets.URL[&#39;activate&#39;]
         else :
-            url = Assets.URL[&#39;ActivateTree&#39;]
+            url = Assets.URL[&#39;activateTree&#39;]
 
         data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
@@ -662,7 +1080,7 @@ class Assets:
         Deactivate the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
-        url = Assets.URL[&#39;Deactivate&#39;]
+        url = Assets.URL[&#39;deactivate&#39;]
         data = {&#39;cmd&#39;: &#39;Deactivate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
         logging.debug(&#39;URL - &#39;+ url)
@@ -681,7 +1099,7 @@ class Assets:
         Delete the asset or folder specified by the path parameter
         &#39;&#39;&#39;
 
-        url = Assets.URL[&#39;deletePage&#39;]
+        url = Assets.URL[&#39;delete&#39;]
         data = {&#39;cmd&#39;: &#39;deletePage&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
         logging.debug(&#39;URL - &#39;+ url)
@@ -692,7 +1110,115 @@ class Assets:
         if not response.success:
             logging.error(&#39;Error Deactivating the asset&#39;)
             logging.error(&#39;Failed due to : &#39;+response.message)
-        return response.success</code></pre>
+        return response.success
+
+    def activateList(self, listSrc):
+        &#39;&#39;&#39;
+        Activate all the assets provided by the listSrc.
+        listSrc can be a list of all assets to activate or the file name containing the list of assets
+        &#39;&#39;&#39;
+
+        return self._perform(self.activate, listSrc)
+
+    def deactivateList(self, listSrc):
+        &#39;&#39;&#39;
+        Deactivate all the assets provided by the listSrc.
+        listSrc can be a list of all assets to deactivate or the file name containing the list of assets
+        &#39;&#39;&#39;
+
+        return self._perform(self.deactivate, listSrc)
+
+    def deleteList(self, listSrc):
+        &#39;&#39;&#39;
+        Delete all the assets provided by the listSrc.
+        listSrc can be a list of all assets to delete or the file name containing the list of assets
+        &#39;&#39;&#39;
+
+        return self._perform(self.delete, listSrc)
+
+
+    def _perform(self,  action, listSrc):
+        &#39;&#39;&#39;
+        Creates the folder tree structure in DAM under the given path, reflecting the structure in local dir 
+        &#39;&#39;&#39;
+        assetList = []
+
+        if listSrc:
+            if isinstance(listSrc, list):
+               assetList += cleanseDirList(&#39;&#39;, listSrc, &#39;/content/dam&#39; )
+            elif isinstance(listSrc, str):
+                headers, types, csv_data = self._csvRead(listSrc, False, False)
+                logging.debug(&#39;Asset list from &#39; + listSrc + &#39; - &#39;+ str(csv_data))
+                for row in csv_data:
+                    assetList += cleanseDirList(&#39;&#39;, row, &#39;/content/dam&#39; )
+            else:
+                logging.error(&#39;Invalid input for listSrc&#39;)
+
+        logging.debug(&#39;Performing &#39;+ str(action) +&#39; for - &#39;+ str(assetList))
+        overall_status = True
+        for asset in assetList:
+            logging.debug(&#39;Processing asset - &#39;+ asset)
+            overall_status &amp;= action(asset)
+        return overall_status
+
+    def exists(self, asset):
+        &#39;&#39;&#39;
+        Check if the file is available in DAM and returns the list of paths at which the file is available 
+        &#39;&#39;&#39;
+
+        fcontent = open(asset, &#39;rb&#39;).read()
+        _sha1 = hashlib.sha1(fcontent).hexdigest()
+
+        url = Assets.URL[&#39;exists&#39;] + _sha1
+
+        logging.debug(&#39;URL - &#39;+ url)
+
+        response = self.conn.get(url)
+
+        duplicates = []
+
+        if response.success:
+            for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                duplicates.append(e[Assets.CFG[&#39;path_key&#39;]])    
+        else:
+            logging.error(&#39;Error checking if the given asset exists in DAM&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+
+        return duplicates
+
+    def duplicates(self, path=&#39;/content/dam&#39;):
+        &#39;&#39;&#39;
+        Find all the duplicate binaries under the given path and returns it. Returns empty if no duplicates are identified 
+        &#39;&#39;&#39;
+
+        url = Assets.URL[&#39;duplicates&#39;] + path
+
+        logging.debug(&#39;URL - &#39;+ url)
+
+        response = self.conn.get(url)
+
+        duplicates = {}
+        removals = []
+
+        if response.success:
+            for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+                sha_val = self._metaVal(e, Assets.CFG[&#39;sha1_key&#39;])
+                if sha_val in duplicates:
+                    duplicates[sha_val].append(e[Assets.CFG[&#39;path_key&#39;]])
+                else:
+                    duplicates[sha_val] = [e[Assets.CFG[&#39;path_key&#39;]]]
+            for k in duplicates:
+                if len(duplicates[k]) &lt;=1:
+                    removals.append(k)
+            for k in removals:
+                duplicates.pop(k)
+        else:
+            logging.error(&#39;Error checking for duplicates in DAM&#39;)
+            logging.error(&#39;Failed due to : &#39;+response.message)
+            logging.error(&#39;Empty list returned&#39;)
+
+        return duplicates</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -726,9 +1252,9 @@ class Assets:
     metadata = self.metadata(path)
 
     if(&#39;dam:AssetContent&#39; == metadata[&#39;jcr:primaryType&#39;]) :
-        url = Assets.URL[&#39;Activate&#39;]
+        url = Assets.URL[&#39;activate&#39;]
     else :
-        url = Assets.URL[&#39;ActivateTree&#39;]
+        url = Assets.URL[&#39;activateTree&#39;]
 
     data = {&#39;cmd&#39;: &#39;Activate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
@@ -741,6 +1267,23 @@ class Assets:
         logging.error(&#39;Error Activating the asset&#39;)
         logging.error(&#39;Failed due to : &#39;+response.message)
     return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.activateList"><code class="name flex">
+<span>def <span class="ident">activateList</span></span>(<span>self, listSrc)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Activate all the assets provided by the listSrc.
+listSrc can be a list of all assets to activate or the file name containing the list of assets</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def activateList(self, listSrc):
+    &#39;&#39;&#39;
+    Activate all the assets provided by the listSrc.
+    listSrc can be a list of all assets to activate or the file name containing the list of assets
+    &#39;&#39;&#39;
+
+    return self._perform(self.activate, listSrc)</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.createFolder"><code class="name flex">
@@ -756,22 +1299,63 @@ class Assets:
     &#39;&#39;&#39;
 
     parent, name = splitPath(path)
-    data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$name&#39;, name)
+    n_name=namify(name)
+    n_path=namify(path)
+
+    data = Assets.DATA[&#39;createFolder&#39;].replace(&#39;$name&#39;, n_name)
     if title:
-        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, title)
+        data = data.replace(&#39;$title&#39;, title)
     else:
-        data = Assets.DATA[&#39;CREATE_FOLDER&#39;].replace(&#39;$title&#39;, name)
+        data = data.replace(&#39;$title&#39;, name)
 
-    logging.debug(&#39;URL - &#39;+ path)
-    logging.debug(&#39;Data - &#39;+ data)
+    data = json.loads(data)
 
-    response = self.conn.post(path, data = data)            
+    logging.debug(&#39;URL - &#39;+ n_path)
+    logging.debug(&#39;Data - &#39;+ str(data))
+
+    response = self.conn.post(n_path, data = data)            
 
     if not (ignore_error or response.success):
         logging.error(&#39;Error creating folder&#39;)
         logging.error(&#39;Failed due to : &#39;+response.message)
         logging.error(&#39;Check if the folder already exists&#39;)
     return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.createFolderTree"><code class="name flex">
+<span>def <span class="ident">createFolderTree</span></span>(<span>self, path='/content/dam', srcDir=None, srcList=None, ignore_error=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Creates the folder tree structure in DAM under the given path, reflecting the structure in local dir</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def createFolderTree(self,  path=&#39;/content/dam&#39;, srcDir=None, srcList=None, ignore_error = False):
+    &#39;&#39;&#39;
+    Creates the folder tree structure in DAM under the given path, reflecting the structure in local dir 
+    &#39;&#39;&#39;
+    dirList = []
+
+    if srcList:
+        if isinstance(srcList, list):
+           dirList += cleanseDirList(&#39;&#39;, srcList, path )
+        elif isinstance(srcList, str):
+            headers, types, csv_data = self._csvRead(srcList, False, False)
+            for row in csv_data:
+                dirList += cleanseDirList(&#39;&#39;, row, path )
+        else:
+            logging.error(&#39;Invalid input for srcList&#39;)
+
+    if srcDir:
+        env = Env(srcDir)
+        dirList += cleanseDirList(srcDir, env.listDirs(), path )
+
+    logging.debug(&#39;Creating Folders for - &#39;+ str(dirList))
+    overall_status = True
+    for dir in dirList:
+        logging.debug(&#39;Creating Folder - &#39;+ dir)
+        status = self.createFolder(dir)
+        overall_status &amp;= status
+    return overall_status</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.deactivate"><code class="name flex">
@@ -786,7 +1370,7 @@ class Assets:
     Deactivate the asset or folder specified by the path parameter
     &#39;&#39;&#39;
 
-    url = Assets.URL[&#39;Deactivate&#39;]
+    url = Assets.URL[&#39;deactivate&#39;]
     data = {&#39;cmd&#39;: &#39;Deactivate&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
     logging.debug(&#39;URL - &#39;+ url)
@@ -798,6 +1382,23 @@ class Assets:
         logging.error(&#39;Error Deactivating the asset&#39;)
         logging.error(&#39;Failed due to : &#39;+response.message)
     return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.deactivateList"><code class="name flex">
+<span>def <span class="ident">deactivateList</span></span>(<span>self, listSrc)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Deactivate all the assets provided by the listSrc.
+listSrc can be a list of all assets to deactivate or the file name containing the list of assets</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def deactivateList(self, listSrc):
+    &#39;&#39;&#39;
+    Deactivate all the assets provided by the listSrc.
+    listSrc can be a list of all assets to deactivate or the file name containing the list of assets
+    &#39;&#39;&#39;
+
+    return self._perform(self.deactivate, listSrc)</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.delete"><code class="name flex">
@@ -812,7 +1413,7 @@ class Assets:
     Delete the asset or folder specified by the path parameter
     &#39;&#39;&#39;
 
-    url = Assets.URL[&#39;deletePage&#39;]
+    url = Assets.URL[&#39;delete&#39;]
     data = {&#39;cmd&#39;: &#39;deletePage&#39;, &#39;path&#39;:path, &#39;force&#39;:force}
 
     logging.debug(&#39;URL - &#39;+ url)
@@ -824,6 +1425,23 @@ class Assets:
         logging.error(&#39;Error Deactivating the asset&#39;)
         logging.error(&#39;Failed due to : &#39;+response.message)
     return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.deleteList"><code class="name flex">
+<span>def <span class="ident">deleteList</span></span>(<span>self, listSrc)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Delete all the assets provided by the listSrc.
+listSrc can be a list of all assets to delete or the file name containing the list of assets</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def deleteList(self, listSrc):
+    &#39;&#39;&#39;
+    Delete all the assets provided by the listSrc.
+    listSrc can be a list of all assets to delete or the file name containing the list of assets
+    &#39;&#39;&#39;
+
+    return self._perform(self.delete, listSrc)</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.downloadAsset"><code class="name flex">
@@ -863,6 +1481,117 @@ class Assets:
     return overall_status</code></pre>
 </details>
 </dd>
+<dt id="dampy.Assets.Assets.duplicates"><code class="name flex">
+<span>def <span class="ident">duplicates</span></span>(<span>self, path='/content/dam')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Find all the duplicate binaries under the given path and returns it. Returns empty if no duplicates are identified</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def duplicates(self, path=&#39;/content/dam&#39;):
+    &#39;&#39;&#39;
+    Find all the duplicate binaries under the given path and returns it. Returns empty if no duplicates are identified 
+    &#39;&#39;&#39;
+
+    url = Assets.URL[&#39;duplicates&#39;] + path
+
+    logging.debug(&#39;URL - &#39;+ url)
+
+    response = self.conn.get(url)
+
+    duplicates = {}
+    removals = []
+
+    if response.success:
+        for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+            sha_val = self._metaVal(e, Assets.CFG[&#39;sha1_key&#39;])
+            if sha_val in duplicates:
+                duplicates[sha_val].append(e[Assets.CFG[&#39;path_key&#39;]])
+            else:
+                duplicates[sha_val] = [e[Assets.CFG[&#39;path_key&#39;]]]
+        for k in duplicates:
+            if len(duplicates[k]) &lt;=1:
+                removals.append(k)
+        for k in removals:
+            duplicates.pop(k)
+    else:
+        logging.error(&#39;Error checking for duplicates in DAM&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Empty list returned&#39;)
+
+    return duplicates</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.exists"><code class="name flex">
+<span>def <span class="ident">exists</span></span>(<span>self, asset)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Check if the file is available in DAM and returns the list of paths at which the file is available</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def exists(self, asset):
+    &#39;&#39;&#39;
+    Check if the file is available in DAM and returns the list of paths at which the file is available 
+    &#39;&#39;&#39;
+
+    fcontent = open(asset, &#39;rb&#39;).read()
+    _sha1 = hashlib.sha1(fcontent).hexdigest()
+
+    url = Assets.URL[&#39;exists&#39;] + _sha1
+
+    logging.debug(&#39;URL - &#39;+ url)
+
+    response = self.conn.get(url)
+
+    duplicates = []
+
+    if response.success:
+        for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+            duplicates.append(e[Assets.CFG[&#39;path_key&#39;]])    
+    else:
+        logging.error(&#39;Error checking if the given asset exists in DAM&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Empty list returned&#39;)
+
+    return duplicates</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.fetchFolderTree"><code class="name flex">
+<span>def <span class="ident">fetchFolderTree</span></span>(<span>self, path='/content/dam', csv_file='output/folder_tree.csv', props=['jcr:path', 'jcr:content/jcr:title'])</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Fetches the folder structure under the given path and writes it to an output csv file</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def fetchFolderTree(self, path=&#39;/content/dam&#39;, csv_file=&#39;output/folder_tree.csv&#39;, props=[&#39;jcr:path&#39;, &#39;jcr:content/jcr:title&#39;]):
+    &#39;&#39;&#39;
+    Fetches the folder structure under the given path and writes it to an output csv file 
+    &#39;&#39;&#39;
+    folder_data = []
+    url = Assets.URL[&#39;fetchFolderTree&#39;] + path
+    url = url.replace(&#39;$props&#39;, &#39; &#39;.join(props))
+    
+    logging.debug(url)
+
+    response = self.conn.get(url)
+    if response.success:
+        folder_data.append(props)
+        for folder in response.data[Assets.CFG[&#39;assets_key&#39;]]:
+            folder_props = []
+            for key in props:
+                folder_props.append(self._metaVal(folder, key))
+            folder_data.append(folder_props)
+        logging.debug(&#34;Writing folder list to : &#34; + csv_file)
+        dir, fname = dir_n_file(csv_file, &#39;csv&#39;)
+        env = Env(dir)
+        env.writeCSV(fname, data=folder_data)
+    else:
+        logging.error(&#39;Error fetching folder list&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+        logging.error(&#39;Empty list returned&#39;)
+    return folder_data</code></pre>
+</details>
+</dd>
 <dt id="dampy.Assets.Assets.list"><code class="name flex">
 <span>def <span class="ident">list</span></span>(<span>self, path='/content/dam', csv_dump=False, csv_file='output/asset_list.csv')</span>
 </code></dt>
@@ -876,9 +1605,12 @@ class Assets:
     &#39;&#39;&#39;
 
     asset_list = []
-    logging.debug(Assets.URL[&#39;list&#39;])
     url = Assets.URL[&#39;list&#39;] + path
+
+    logging.debug(&#39;URL : &#39;+url)
+
     response = self.conn.get(url)
+
     if response.success:
         for e in response.data[Assets.CFG[&#39;assets_key&#39;]]:
             asset_list.append(e[Assets.CFG[&#39;path_key&#39;]])    
@@ -915,6 +1647,95 @@ class Assets:
         logging.error(&#39;Failed due to : &#39;+response.message)
         logging.error(&#39;Empty metadata returned&#39;)
     return asset_metadata</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.move"><code class="name flex">
+<span>def <span class="ident">move</span></span>(<span>self, srcPath, destPath, newName=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Move the asset or folder from the srcPath to the destPath</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def move(self, srcPath, destPath, newName=None):
+    &#39;&#39;&#39;
+    Move the asset or folder from the srcPath to the destPath
+    &#39;&#39;&#39;
+
+    url = Assets.URL[&#39;move&#39;]
+    data = Assets.DATA[&#39;move&#39;].replace(&#39;$srcPath&#39;, srcPath).replace(&#39;$destParentPath&#39;,destPath)
+    if newName:
+        data = data.replace(&#39;$destName&#39;, newName)
+    else:
+        parent, name = splitPath(srcPath)
+        data = data.replace(&#39;$destName&#39;, name)
+
+    data = json.loads(data)
+
+    logging.debug(&#39;URL - &#39;+ url)
+    logging.debug(&#39;Data - &#39;+ str(data))
+
+    response = self.conn.post(url, data = data)            
+
+    if not response.success:
+        logging.error(&#39;Error moving &#39; + srcPath + &#39; to &#39; + destPath)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+    return response.success</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.restructure"><code class="name flex">
+<span>def <span class="ident">restructure</span></span>(<span>self, inputCSV='input/restructure.csv')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Restructures the DAM folder structure based on the input CSV file</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def restructure(self, inputCSV=&#39;input/restructure.csv&#39;):
+    &#39;&#39;&#39;
+    Restructures the DAM folder structure based on the input CSV file 
+    &#39;&#39;&#39;
+
+    headers, types, csv_data = self._csvRead(inputCSV, True, False)
+
+    overall_status = True
+    for row in csv_data:
+        logging.debug(&#39;Processing row - &#39;+ str(row))
+        if(&#39;Move&#39; == row[0]):
+            srcPath = row[1]
+            destPath = row[3]
+            dparent, dname = splitPath(destPath)
+            status = self.move(srcPath, dparent, dname)
+            if(row[1] != row[4]):
+                self.updateFolderTitle(destPath,row[4])
+        elif (&#39;Delete&#39; == row[0]):
+            status = self.delete(row[1])
+        overall_status &amp;= status
+    return overall_status</code></pre>
+</details>
+</dd>
+<dt id="dampy.Assets.Assets.updateFolderTitle"><code class="name flex">
+<span>def <span class="ident">updateFolderTitle</span></span>(<span>self, path, newTitle)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Updates the folder title with the new value provided</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def updateFolderTitle(self, path, newTitle):
+    &#39;&#39;&#39;
+    Updates the folder title with the new value provided
+    &#39;&#39;&#39;
+
+    url = Assets.URL[&#39;updateFolderTitle&#39;]
+    data = json.loads(Assets.DATA[&#39;updateFolderTitle&#39;].replace(&#39;$path&#39;, path).replace(&#39;$title&#39;,newTitle))
+
+    logging.debug(&#39;URL - &#39;+ url)
+    logging.debug(&#39;Data - &#39;+ str(data))
+
+    response = self.conn.post(url, data = data)            
+
+    if not response.success:
+        logging.error(&#39;Error updating folder title&#39;)
+        logging.error(&#39;Failed due to : &#39;+response.message)
+    return response.success</code></pre>
 </details>
 </dd>
 <dt id="dampy.Assets.Assets.uploadAsset"><code class="name flex">
@@ -998,14 +1819,20 @@ Folder structure under dir replicated onto DAM, under the path specified</p></se
     for row in csv_data:
 
         api_a_path = row[0][12:]
-        update_properties = json.loads(Assets.DATA[&#39;U_PROPS&#39;])
+        update_properties = ast.literal_eval(Assets.DATA[&#39;uprops&#39;])
 
         for index, header in enumerate(headers):
             if index &gt; 0 and header:
-                update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header] = row[index]
-                update_properties[&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;] = types[index]
+                if &#39;[]&#39; in types[index]:
+                    vals = ast.literal_eval(row[index])
+                    for v in vals:
+                        update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header, v))
+                else:
+                    update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header, row[index]))
+
+                update_properties.append((&#39;.&#39; + api_a_path + &#39;/&#39; + header + &#39;@TypeHint&#39;, types[index]))
         
-        logging.debug(&#39;Updating with : &#39;,json.dumps(update_properties))
+        logging.debug(&#39;Updating with : &#39; + json.dumps(update_properties))
         response = self.conn.post(Assets.URL[&#39;uprops&#39;], data = update_properties)
         if not response.success :
             logging.error(&#39;Error updating properties for asset : &#39;,update_properties)
@@ -1075,13 +1902,23 @@ Folder structure under dir replicated onto DAM, under the path specified</p></se
 <li><code><a title="dampy.Assets.Assets.DATA" href="#dampy.Assets.Assets.DATA">DATA</a></code></li>
 <li><code><a title="dampy.Assets.Assets.URL" href="#dampy.Assets.Assets.URL">URL</a></code></li>
 <li><code><a title="dampy.Assets.Assets.activate" href="#dampy.Assets.Assets.activate">activate</a></code></li>
+<li><code><a title="dampy.Assets.Assets.activateList" href="#dampy.Assets.Assets.activateList">activateList</a></code></li>
 <li><code><a title="dampy.Assets.Assets.createFolder" href="#dampy.Assets.Assets.createFolder">createFolder</a></code></li>
+<li><code><a title="dampy.Assets.Assets.createFolderTree" href="#dampy.Assets.Assets.createFolderTree">createFolderTree</a></code></li>
 <li><code><a title="dampy.Assets.Assets.deactivate" href="#dampy.Assets.Assets.deactivate">deactivate</a></code></li>
+<li><code><a title="dampy.Assets.Assets.deactivateList" href="#dampy.Assets.Assets.deactivateList">deactivateList</a></code></li>
 <li><code><a title="dampy.Assets.Assets.delete" href="#dampy.Assets.Assets.delete">delete</a></code></li>
+<li><code><a title="dampy.Assets.Assets.deleteList" href="#dampy.Assets.Assets.deleteList">deleteList</a></code></li>
 <li><code><a title="dampy.Assets.Assets.downloadAsset" href="#dampy.Assets.Assets.downloadAsset">downloadAsset</a></code></li>
 <li><code><a title="dampy.Assets.Assets.downloadFolder" href="#dampy.Assets.Assets.downloadFolder">downloadFolder</a></code></li>
+<li><code><a title="dampy.Assets.Assets.duplicates" href="#dampy.Assets.Assets.duplicates">duplicates</a></code></li>
+<li><code><a title="dampy.Assets.Assets.exists" href="#dampy.Assets.Assets.exists">exists</a></code></li>
+<li><code><a title="dampy.Assets.Assets.fetchFolderTree" href="#dampy.Assets.Assets.fetchFolderTree">fetchFolderTree</a></code></li>
 <li><code><a title="dampy.Assets.Assets.list" href="#dampy.Assets.Assets.list">list</a></code></li>
 <li><code><a title="dampy.Assets.Assets.metadata" href="#dampy.Assets.Assets.metadata">metadata</a></code></li>
+<li><code><a title="dampy.Assets.Assets.move" href="#dampy.Assets.Assets.move">move</a></code></li>
+<li><code><a title="dampy.Assets.Assets.restructure" href="#dampy.Assets.Assets.restructure">restructure</a></code></li>
+<li><code><a title="dampy.Assets.Assets.updateFolderTitle" href="#dampy.Assets.Assets.updateFolderTitle">updateFolderTitle</a></code></li>
 <li><code><a title="dampy.Assets.Assets.uploadAsset" href="#dampy.Assets.Assets.uploadAsset">uploadAsset</a></code></li>
 <li><code><a title="dampy.Assets.Assets.uploadFolder" href="#dampy.Assets.Assets.uploadFolder">uploadFolder</a></code></li>
 <li><code><a title="dampy.Assets.Assets.uprops" href="#dampy.Assets.Assets.uprops">uprops</a></code></li>

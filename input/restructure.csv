@@ -1,0 +1,10 @@
+Action,Current Path,Current  Title,New Path,New Title
+Move,/content/dam/dampy/test/folder-tree-csv/new-process,New Process,/content/dam/dampy/test/new-process,New Process - RE
+Move,/content/dam/dampy/test/folder-tree-csv/new-process/standard,Standard,/content/dam/dampy/test/new-process/standard,Standard - RE
+Move,/content/dam/dampy/test/folder-tree-csv/new-process/adhoc,Adhoc,/content/dam/dampy/test/new-process/adhoc,Adhoc - RE
+Move,/content/dam/dampy/test/folder-tree-list/new-event,New EVENT,/content/dam/dampy/test/new-event,New EVENT - RE
+Move,/content/dam/dampy/test/folder-tree-list/text-tree/new-activity,New Activity,/content/dam/dampy/test/new-activity,New Activity - RE
+Move,/content/dam/dampy/test/folder-tree-list/text-tree/new-activity/liesure,Liesure,/content/dam/dampy/test/new-activity/liesure,Liesure - RE
+Move,/content/dam/dampy/test/folder-tree-list/text-tree/new-activity/sports,Sports,/content/dam/dampy/test/new-activity/sports,Sports - RE
+Delete,/content/dam/dampy/test/folder-tree-csv,Folder Tree CSV,,
+Delete,/content/dam/dampy/test/folder-tree-list,Folder Tree LIST,,

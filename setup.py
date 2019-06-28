@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
   name = 'dampy',        
   packages = ['dampy'],  
-  version = '0.6',      
+  version = '0.7',      
   license='MIT', 
   description = 'A python tool to easily work with Adobe Experience Manager (AEM) DAM. ',   
   author = 'Ashokkumar T.A',                  

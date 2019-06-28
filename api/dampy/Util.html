@@ -24,7 +24,7 @@
 <summary>Source code</summary>
 <pre><code class="python"># ashokkumar.ta@gmail.com / 24-May-2019
 
-import os
+import os, re
 
 def trimPath(path):
     &#39;&#39;&#39;
@@ -50,7 +50,7 @@ def splitPath(path):
 def cleansePaths(dir, files, path):
     &#39;&#39;&#39;
     Removes the dir prefix from the names of the files, check each file if it starts with 
-    /content/dam and if not pre-pends /content/dam to the file
+    /content/dam and if not pre-pends the path to the file
     Finally takes the parent path of the files and retuns a dict mapping files given to the parent path
     &#39;&#39;&#39;
     c_files = {}
@@ -62,6 +62,26 @@ def cleansePaths(dir, files, path):
         c_files[file] = parent
     return c_files
 
+def cleanseDirList(baseDir, dirList, path):
+    &#39;&#39;&#39;
+    Removes the baseDir prefix from the names in the dirList, check each dir if it starts with 
+    /content/dam and if not pre-pends the path to the file and returns it
+    &#39;&#39;&#39;
+    l_dirs = []
+    for dir in dirList:
+        if baseDir:
+            p, v = dir.split(baseDir, 1)
+        else:
+            v = dir
+        if not v.startswith(&#39;/content/dam/&#39;):
+            if not (v.startswith(&#39;/&#39;) or path.endswith(&#39;/&#39;)):
+                v = path + &#39;/&#39; + v
+            else:
+                v = path + v
+                v = re.sub(&#39;//&#39;,&#39;/&#39;,v)
+        l_dirs.append(v)
+    return l_dirs
+
 def dir_n_file(path, ext):
     base = os.path.basename(path)
     dir = os.path.dirname(path)
@@ -69,7 +89,10 @@ def dir_n_file(path, ext):
         base += &#39;.&#39;+ext
     if not dir:
         dir = &#39;.&#39;
-    return dir, base</code></pre>
+    return dir, base
+
+def namify(path):
+    return re.sub(&#39;[ %:*?&#34;\&#39;|.#{}^;+,$]&#39;,&#39;-&#39;,path).lower()</code></pre>
 </details>
 </section>
 <section>
@@ -79,19 +102,48 @@ def dir_n_file(path, ext):
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="dampy.Util.cleanseDirList"><code class="name flex">
+<span>def <span class="ident">cleanseDirList</span></span>(<span>baseDir, dirList, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Removes the baseDir prefix from the names in the dirList, check each dir if it starts with
+/content/dam and if not pre-pends the path to the file and returns it</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def cleanseDirList(baseDir, dirList, path):
+    &#39;&#39;&#39;
+    Removes the baseDir prefix from the names in the dirList, check each dir if it starts with 
+    /content/dam and if not pre-pends the path to the file and returns it
+    &#39;&#39;&#39;
+    l_dirs = []
+    for dir in dirList:
+        if baseDir:
+            p, v = dir.split(baseDir, 1)
+        else:
+            v = dir
+        if not v.startswith(&#39;/content/dam/&#39;):
+            if not (v.startswith(&#39;/&#39;) or path.endswith(&#39;/&#39;)):
+                v = path + &#39;/&#39; + v
+            else:
+                v = path + v
+                v = re.sub(&#39;//&#39;,&#39;/&#39;,v)
+        l_dirs.append(v)
+    return l_dirs</code></pre>
+</details>
+</dd>
 <dt id="dampy.Util.cleansePaths"><code class="name flex">
 <span>def <span class="ident">cleansePaths</span></span>(<span>dir, files, path)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Removes the dir prefix from the names of the files, check each file if it starts with
-/content/dam and if not pre-pends /content/dam to the file
+/content/dam and if not pre-pends the path to the file
 Finally takes the parent path of the files and retuns a dict mapping files given to the parent path</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">def cleansePaths(dir, files, path):
     &#39;&#39;&#39;
     Removes the dir prefix from the names of the files, check each file if it starts with 
-    /content/dam and if not pre-pends /content/dam to the file
+    /content/dam and if not pre-pends the path to the file
     Finally takes the parent path of the files and retuns a dict mapping files given to the parent path
     &#39;&#39;&#39;
     c_files = {}
@@ -119,6 +171,17 @@ Finally takes the parent path of the files and retuns a dict mapping files given
     if not dir:
         dir = &#39;.&#39;
     return dir, base</code></pre>
+</details>
+</dd>
+<dt id="dampy.Util.namify"><code class="name flex">
+<span>def <span class="ident">namify</span></span>(<span>path)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def namify(path):
+    return re.sub(&#39;[ %:*?&#34;\&#39;|.#{}^;+,$]&#39;,&#39;-&#39;,path).lower()</code></pre>
 </details>
 </dd>
 <dt id="dampy.Util.splitPath"><code class="name flex">
@@ -181,9 +244,11 @@ Finally takes the parent path of the files and retuns a dict mapping files given
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
+<ul class="two-column">
+<li><code><a title="dampy.Util.cleanseDirList" href="#dampy.Util.cleanseDirList">cleanseDirList</a></code></li>
 <li><code><a title="dampy.Util.cleansePaths" href="#dampy.Util.cleansePaths">cleansePaths</a></code></li>
 <li><code><a title="dampy.Util.dir_n_file" href="#dampy.Util.dir_n_file">dir_n_file</a></code></li>
+<li><code><a title="dampy.Util.namify" href="#dampy.Util.namify">namify</a></code></li>
 <li><code><a title="dampy.Util.splitPath" href="#dampy.Util.splitPath">splitPath</a></code></li>
 <li><code><a title="dampy.Util.trimPath" href="#dampy.Util.trimPath">trimPath</a></code></li>
 </ul>

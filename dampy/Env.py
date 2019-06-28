@@ -57,6 +57,17 @@ class Env:
                 files.append(os.path.join(r, file).replace("\\","/"))
         return files
 
+    def listDirs(self):
+        '''
+        Returns list of all the files present under the directory represented by this env
+        '''
+
+        dirs = []
+        for r, d, f in os.walk(self.dir):
+            for dir in d:
+                dirs.append(os.path.join(r, dir).replace("\\","/"))
+        return dirs
+
     def writeCSV(self, fname, list=None, data=None):
         '''
         Writes the data to the file under the directory represented by this env

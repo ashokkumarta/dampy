@@ -129,6 +129,82 @@ __title__ – Optional title for the folder. If not provided, name of the folder
 >>> status = aem.dam.createFolder(‘/content/dam/new_folder’, ‘My New Folder’)
 ```
 
+### createFolderTree()
+This method creates the folder tree structure in DAM, reflecting the folder structure in a local dir or in a given list. It takes in a path under which to create the folder structure, local directory path that contains the folder structure to reflect in DAM and/or an input list containing the list of folders to create 
+Parameters 
+__path__ – DAM folder under which to create the folder tree structre. Optional and defaults to /content/dam. Ignored if the folder structure or list provided starts with /content/dam/..
+__srcDir__ – Local folder path. The folder structure under this path is reflected in DAM
+__srcList__ – Input list of folder paths to create. Can be a list or a text file or CSV file containing the list of folder paths to create in DAM
+
+If both the __srcDir__ and __srcList__ parameters are provided, folder structure under both gets created in DAM
+
+```
+# Create folder tree, based on local folder structure under the path /content/dam/dampy/test
+>>> status = aem.dam.createFolderTree(path='/content/dam/dampy/test', srcDir='upload/Folder Tree Dir')
+   
+# Create folder tree, based on entries in input text file
+>>> status = aem.dam.createFolderTree( srcList='input/flist.txt')
+
+# Create folder tree, based on entries in input CSV file
+>>> status = aem.dam.createFolderTree(srcList='input/Folder_tree.csv')
+
+# Create folder tree, based on input provided as a list
+>>> status = aem.dam.createFolderTree(srcList=['/content/dam/dampy/test/Folder Tree LIST', '/content/dam/dampy/test/
+
+```
+
+### updateFolderTitle()
+This method updates the folder title with the new value provided 
+Parameters 
+__path__ – Path of the DAM folder for which title change needs to be done
+__newTitle__ – New value for the folder title
+
+```
+# Update the title of the folder to the new value provided
+>>> status = aem.dam.updateFolderTitle(path='dampy/test/folder-tree-txt', newTitle='Root Folder from Text tree')
+
+```
+
+### move()
+This method moves the asset or folder from the srcPath to the destPath
+Parameters 
+__srcPath__ – Path of the source asset or folder to move
+__destPath__ – Destination path under which the asset or folder is moved to
+__newName__ – New name for the moved asset or folder. This parameter is optional and if not provided, the name of the asset or folder moved remains the same as its current name
+
+```
+# Move the folder from the source path to the destination path
+>>> status = aem.dam.move(srcPath='/content/dam/dampy/test/folder-tree-txt', destPath='/content/dam/dampy/test/folder-tree-list')
+
+# Move the folder from the source path to the destination path with a new name
+>>> status = aem.dam.move(srcPath='/content/dam/dampy/test/folder-tree-list/folder-tree-txt', destPath='/content/dam/dampy/test/folder-tree-list', newName='text-tree')
+
+```
+
+### fetchFolderTree()
+This method fetches the folder structure under the given path and writes it to an output csv file
+Parameters 
+__path__ – Base path, the folder structure under which gets returned. Optional parameter and defaults to '/content/dam'
+__csv_file__ – The name of the output CSV file to which the output is written to. Optional and by default writes to the file 'output/folder_tree.csv'
+__props__ – List of properties of folders that are extracted for the folder tree. Optional and by default outputs the folder path and title
+
+```
+# Fetch the folder tree structure from DAM and write it to CSV file
+>>> status = aem.dam.fetchFolderTree(path='/content/dam/dampy/test')
+
+```
+
+### restructure()
+This method restructures the DAM folder structure based on the input CSV file 
+Parameters 
+__inputCSV__ – Path of the CSV file which contains the details for restructuring the folders. This CSV file contains a list of entries for moving or deleting a folder
+
+```
+# Restructure the folders in DAM, moving and deleting folders and updating folder title based on input CSV file
+>>> status = aem.dam.restructure(inputCSV='input/restructure.csv')
+
+```
+
 ### uploadAsset()
 This method uploads an asset from the local path to DAM under the path specified. It takes in 2 parameters
 
@@ -295,6 +371,24 @@ This method returns a Boolean value indicating the success status
 >>> status = aem.dam.activate((‘/content/dam/my_folder’)
 ```
 
+### activateList()
+This method activates all the assets provided by its parameter listSrc
+
+__listSrc__ – Mandatory parameter containing the list of assets to activate. This parameter can be a list of all assets to activate or name of a text or CSV file containing the list of assets to activate
+
+This method returns a Boolean value indicating the success status if all the assets in the list are activated successfully
+
+```
+# Activate a list of assets in text file
+>>> status = aem.dam.activateList(listSrc='input/alist.txt')
+
+# Activate a list of assets in a CSV file
+>>> status = aem.dam.activateList(listSrc='input/alist.csv')
+
+# Activate a list of assets passed in as parameter
+>>> status = aem.dam.activateList(listSrc=['/content/dam/dampy/test/new_samples/activities/hiking-camping/alpinists-himalayas.jpg', '/content/dam/dampy/test/new_samples/activities/running/fitness-woman.jpg'])
+```
+
 ### deactivate()
 This method deactivates a given asset or a folder in DAM.  It takes in one mandatory path parameter 
 
@@ -308,6 +402,24 @@ This method returns a Boolean value indicating the success status
 
 # Deactivates the given folder in DAM
 >>> status = aem.dam.deactivate((‘/content/dam/my_folder’)
+```
+
+### deactivateList()
+This method deactivates all the assets provided by its parameter listSrc
+
+__listSrc__ – Mandatory parameter containing the list of assets to deactivate. This parameter can be a list of all assets to deactivate or name of a text or CSV file containing the list of assets to deactivate
+
+This method returns a Boolean value indicating the success status if all the assets in the list are deactivated successfully
+
+```
+# Deactivate a list of assets in text file
+>>> status = aem.dam.deactivateList(listSrc='input/alist.txt')
+
+# Deactivate a list of assets in a CSV file
+>>> status = aem.dam.deactivateList(listSrc='input/alist.csv')
+
+# Deactivate a list of assets passed in as parameter
+>>> status = aem.dam.deactivateList(listSrc=['/content/dam/dampy/test/new_samples/activities/hiking-camping/alpinists-himalayas.jpg', '/content/dam/dampy/test/new_samples/activities/running/fitness-woman.jpg'])
 ```
 
 ### delete()
@@ -324,6 +436,50 @@ This method returns a Boolean value indicating the success status
 # Deletes the given folder from DAM
 >>> status = aem.dam.delete((‘/content/dam/my_folder’)
 ```
+
+### deleteList()
+This method deletes all the assets provided by its parameter listSrc
+
+__listSrc__ – Mandatory parameter containing the list of assets to delete. This parameter can be a list of all assets to delete or name of a text or CSV file containing the list of assets to delete
+
+This method returns a Boolean value indicating the success status if all the assets in the list are deleted successfully
+
+```
+# Delete a list of assets in text file
+>>> status = aem.dam.deleteList(listSrc='input/alist.txt')
+
+# Delete a list of assets in a CSV file
+>>> status = aem.dam.deleteList(listSrc='input/alist.csv')
+
+# Delete a list of assets passed in as parameter
+>>> status = aem.dam.deleteList(listSrc=['/content/dam/dampy/test/new_samples/activities/hiking-camping/alpinists-himalayas.jpg', '/content/dam/dampy/test/new_samples/activities/running/fitness-woman.jpg'])
+```
+
+### exists()
+This method checks if a given asset file is available in DAM and returns the list of paths under which it is available
+
+__asset__ – Path of the asset in the local system. 
+
+```
+# Check if an asset exits in DAM and return the paths under which its present
+>>> status = aem.dam.exists('upload/Shorts_men.jpg')
+
+```
+
+### duplicates()
+This method finds all the duplicate assets under the given path and returns it. Returns an empty object if no duplicates are identified 
+
+__path__ – Path under which the check is done to identify duplicates
+
+```
+# List all duplicate assets in DAM under the given path
+>>> status = aem.dam.duplicates('/content/dam/dampy')
+
+# List all duplicate assets in DAM
+>>> status = aem.dam.duplicates()
+
+```
+
 
 
 ## Reservation

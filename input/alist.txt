@@ -1,0 +1,6 @@
+/content/dam/dampy/test/new_samples/Shorts_men.jpg
+/content/dam/dampy/test/new_samples/activities/biking/cycling_1.jpg
+/content/dam/dampy/test/new_samples/activities/biking/cycling_2.jpg
+/content/dam/dampy/test/new_samples/activities/climbing/climber-gear-indoor.jpg
+/content/dam/dampy/test/new_samples/activities/climbing/kalymnos-island-female.jpg
+/content/dam/dampy/test/new_samples/activities/climbing/kalymnos-island-male.jpg

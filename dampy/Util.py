@@ -1,6 +1,6 @@
 # ashokkumar.ta@gmail.com / 24-May-2019
 
-import os
+import os, re
 
 def trimPath(path):
     '''
@@ -26,7 +26,7 @@ def splitPath(path):
 def cleansePaths(dir, files, path):
     '''
     Removes the dir prefix from the names of the files, check each file if it starts with 
-    /content/dam and if not pre-pends /content/dam to the file
+    /content/dam and if not pre-pends the path to the file
     Finally takes the parent path of the files and retuns a dict mapping files given to the parent path
     '''
     c_files = {}
@@ -38,6 +38,26 @@ def cleansePaths(dir, files, path):
         c_files[file] = parent
     return c_files
 
+def cleanseDirList(baseDir, dirList, path):
+    '''
+    Removes the baseDir prefix from the names in the dirList, check each dir if it starts with 
+    /content/dam and if not pre-pends the path to the file and returns it
+    '''
+    l_dirs = []
+    for dir in dirList:
+        if baseDir:
+            p, v = dir.split(baseDir, 1)
+        else:
+            v = dir
+        if not v.startswith('/content/dam/'):
+            if not (v.startswith('/') or path.endswith('/')):
+                v = path + '/' + v
+            else:
+                v = path + v
+                v = re.sub('//','/',v)
+        l_dirs.append(v)
+    return l_dirs
+
 def dir_n_file(path, ext):
     base = os.path.basename(path)
     dir = os.path.dirname(path)
@@ -47,4 +67,6 @@ def dir_n_file(path, ext):
         dir = '.'
     return dir, base
 
+def namify(path):
+    return re.sub('[ %:*?"\'|.#{}^;+,$]','-',path).lower()
 
