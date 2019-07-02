@@ -6,6 +6,31 @@ An utility to easily work with Adobe Experience Manager (AEM) DAM.
 Python 3
 ```
 
+## Features
+* Find a list of all assets in DAM / under a folder
+* Create a new folder
+* Move folder to a different path
+* Modify the folder title 
+* Create a complete folder tree structure
+* Get the folder tree structure of DAM / under specific path
+* Restructure the folder hierarchy in DAM
+* Upload a new asset
+* Upload a loacl folder with all its assets and subfolders to DAM
+* Download an asset from DAM
+* Download a complete folder from DAM
+* Get the metadata of assets
+* Extract specfied properties of the assets to a CSV file
+* Update properties of assets based on CSV file
+* Activate an asset or a folder
+* Activate a given list of assets and folders
+* Deactivate an asset or a folder
+* Deactivate a given list of assets and folders
+* Delete an asset or a folder
+* Delete a given list of assets and folders
+* Check if an asset already exists in DAM and the path(s) at which its present
+* Report all duplicate assets in DAM / under a path 
+
+
 ## About the tool
 dampy is a tool to work with AEM DAM. For a client I recently work with, as we went live the client team had frequent requests to
 * Get a list of all the assets under a path 

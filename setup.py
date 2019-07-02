@@ -1,11 +1,17 @@
 # ashokkumar.ta@gmail.com / 24-May-2019
-from distutils.core import setup
+from setuptools import setup, find_packages
+
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
+
 setup(
   name = 'dampy',        
   packages = ['dampy'],  
-  version = '0.7',      
+  version = '0.8',      
   license='MIT', 
   description = 'A python tool to easily work with Adobe Experience Manager (AEM) DAM. ',   
+  long_description_content_type='text/markdown',
+  long_description=long_description,
   author = 'Ashokkumar T.A',                  
   author_email = 'ashokkumar.ta@gmail.com',   
   url = 'https://github.com/ashokkumarta/dampy',   
