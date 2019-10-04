@@ -6,52 +6,13 @@ import logging
 import csv, ast
 import hashlib
 
-from dampy.Env import Env
-from dampy.Util import *
+from dampy.lib.Config import *
+from dampy.lib.Util import *
+from dampy.lib.Env import Env
+
 
 class Assets:
     '''Class abstracting the DAM operations '''
-
-
-    CFG = {
-        'assets_key': 'hits',
-        'path_key': 'jcr:path', 
-        'sha1_key': 'jcr:content/metadata/dam:sha1'
-    }
-
-    URL = {
-        'list': '/bin/querybuilder.json?type=dam:Asset&p.limit=-1&p.hits=selective&p.properties=jcr:path&p.nodedepth=-1&path=',
-        'xprops': '/bin/querybuilder.json?type=dam:Asset&p.limit=-1&p.hits=selective&p.properties=$props&p.nodedepth=-1&path=',
-        'fetchFolderTree': '/bin/querybuilder.json?type=sling:Folder&p.limit=-1&p.hits=selective&p.properties=$props&p.nodedepth=-1&path=',
-        'uprops': '/content/dam.html',
-        'metadata_suffix': '/jcr:content.',
-        'metadata_type': '.json',
-        'activate': '/bin/replicate.json',
-        'deactivate': '/bin/replicate.json',
-        'move': '/bin/wcmcommand',
-        'updateFolderTitle': '/content/dam',
-        'delete': '/bin/wcmcommand',
-        'exists': '/bin/querybuilder.json?p.hits=selective&path=/content/dam&p.properties=jcr:path&p.limit=-1&property=jcr:content/metadata/dam:sha1&property.operation=equals&property.value=',
-        'duplicates': '/bin/querybuilder.json?p.hits=selective&p.properties=jcr:path jcr:content/metadata/dam:sha1&p.limit=-1&property=jcr:content/metadata/dam:sha1&property.operation=exists&path=',
-        'activateTree': '/libs/replication/treeactivation.html'
-    }
-
-    DATA = {
-        'createFolder' : '{"./jcr:primaryType": "sling:OrderedFolder", \
-            "./jcr:content/jcr:primaryType": "nt:unstructured", \
-            "./jcr:content/jcr:title":"$title", \
-            ":name":"$name" }',
-        'move' : '{"cmd": "movePage", \
-            "integrity": "true", \
-            "srcPath":"$srcPath", \
-            "destParentPath":"$destParentPath", \
-            "destName":"$destName" }',
-        'updateFolderTitle' : '{":operation": "dam.share.folder", \
-            "path":"$path", \
-            "title":"$title" }',
-        'uprops' : '[("_charset_", "utf-8"), ("dam:bulkUpdate", "true"), ("mode", "hard")]'
-
-    }
 
     def __init__(self, conn):
         '''
@@ -66,15 +27,15 @@ class Assets:
         '''
     
         asset_list = []
-        url = Assets.URL['list'] + path
+        url = urls['list'] + path
 
         logging.debug('URL : '+url)
 
         response = self.conn.get(url)
 
         if response.success:
-            for e in response.data[Assets.CFG['assets_key']]:
-                asset_list.append(e[Assets.CFG['path_key']])    
+            for e in response.data[keys.assets_key]:
+                asset_list.append(e[keys.path_key])    
         else:
             logging.error('Error getting the assets list')
             logging.error('Failed due to : '+response.message)
@@ -91,7 +52,7 @@ class Assets:
         Get the metadata of the asset. Level specifies for nesting levels for metadata fetch 
         '''
         asset_metadata = {}
-        url = asset_path + Assets.URL['metadata_suffix'] + str(level) + Assets.URL['metadata_type']
+        url = asset_path + urls['metadata_suffix'] + str(level) + urls['metadata_type']
         response = self.conn.get(url)
         if response.success:
             asset_metadata = response.data
@@ -139,7 +100,7 @@ class Assets:
         Extracts the metadata properties of the assets under the given path and writes it to an output csv file 
         '''
         asset_data = []
-        url = Assets.URL['xprops'] + path
+        url = urls['xprops'] + path
         url = url.replace('$props', ' '.join(props))
         
         logging.debug(url)
@@ -147,7 +108,7 @@ class Assets:
         response = self.conn.get(url)
         if response.success:
             asset_data.append(props)
-            for asset in response.data[Assets.CFG['assets_key']]:
+            for asset in response.data[keys.assets_key]:
                 asset_props = []
                 for key in props:
                     asset_props.append(self._metaVal(asset, key))
@@ -185,7 +146,7 @@ class Assets:
         for row in csv_data:
 
             api_a_path = row[0][12:]
-            update_properties = ast.literal_eval(Assets.DATA['uprops'])
+            update_properties = ast.literal_eval(msgs['uprops'])
 
             for index, header in enumerate(headers):
                 if index > 0 and header:
@@ -199,7 +160,7 @@ class Assets:
                     update_properties.append(('.' + api_a_path + '/' + header + '@TypeHint', types[index]))
             
             logging.debug('Updating with : ' + json.dumps(update_properties))
-            response = self.conn.post(Assets.URL['uprops'], data = update_properties)
+            response = self.conn.post(urls['uprops'], data = update_properties)
             if not response.success :
                 logging.error('Error updating properties for asset : ',update_properties)
                 overall_status = False
@@ -245,7 +206,7 @@ class Assets:
         n_name=namify(name)
         n_path=namify(path)
 
-        data = Assets.DATA['createFolder'].replace('$name', n_name)
+        data = msgs['createFolder'].replace('$name', n_name)
         if title:
             data = data.replace('$title', title)
         else:
@@ -297,7 +258,7 @@ class Assets:
         Fetches the folder structure under the given path and writes it to an output csv file 
         '''
         folder_data = []
-        url = Assets.URL['fetchFolderTree'] + path
+        url = urls['fetchFolderTree'] + path
         url = url.replace('$props', ' '.join(props))
         
         logging.debug(url)
@@ -305,7 +266,7 @@ class Assets:
         response = self.conn.get(url)
         if response.success:
             folder_data.append(props)
-            for folder in response.data[Assets.CFG['assets_key']]:
+            for folder in response.data[keys.assets_key]:
                 folder_props = []
                 for key in props:
                     folder_props.append(self._metaVal(folder, key))
@@ -326,8 +287,8 @@ class Assets:
         Updates the folder title with the new value provided
         '''
 
-        url = Assets.URL['updateFolderTitle']
-        data = json.loads(Assets.DATA['updateFolderTitle'].replace('$path', path).replace('$title',newTitle))
+        url = urls['updateFolderTitle']
+        data = json.loads(msgs['updateFolderTitle'].replace('$path', path).replace('$title',newTitle))
 
         logging.debug('URL - '+ url)
         logging.debug('Data - '+ str(data))
@@ -403,8 +364,8 @@ class Assets:
         Move the asset or folder from the srcPath to the destPath
         '''
 
-        url = Assets.URL['move']
-        data = Assets.DATA['move'].replace('$srcPath', srcPath).replace('$destParentPath',destPath)
+        url = urls['move']
+        data = msgs['move'].replace('$srcPath', srcPath).replace('$destParentPath',destPath)
         if newName:
             data = data.replace('$destName', newName)
         else:
@@ -432,11 +393,11 @@ class Assets:
         metadata = self.metadata(path)
 
         if('dam:AssetContent' == metadata['jcr:primaryType']) :
-            url = Assets.URL['activate']
+            url = urls['activate']
         else :
-            url = Assets.URL['activateTree']
+            url = urls['activateTree']
 
-        data = {'cmd': 'Activate', 'path':path, 'force':force}
+        data = json.loads(msgs['activate'].replace('$path', path))
 
         logging.debug('URL - '+ url)
         logging.debug('Data - '+ str(data))
@@ -453,8 +414,8 @@ class Assets:
         Deactivate the asset or folder specified by the path parameter
         '''
 
-        url = Assets.URL['deactivate']
-        data = {'cmd': 'Deactivate', 'path':path, 'force':force}
+        url = urls['deactivate']
+        data = json.loads(msgs['deactivate'].replace('$path', path))
 
         logging.debug('URL - '+ url)
         logging.debug('Data - '+ str(data))
@@ -472,8 +433,8 @@ class Assets:
         Delete the asset or folder specified by the path parameter
         '''
 
-        url = Assets.URL['delete']
-        data = {'cmd': 'deletePage', 'path':path, 'force':force}
+        url = urls['delete']
+        data = json.loads(msgs['delete'].replace('$path', path))
 
         logging.debug('URL - '+ url)
         logging.debug('Data - '+ str(data))
@@ -542,7 +503,7 @@ class Assets:
         fcontent = open(asset, 'rb').read()
         _sha1 = hashlib.sha1(fcontent).hexdigest()
 
-        url = Assets.URL['exists'] + _sha1
+        url = urls['exists'] + _sha1
 
         logging.debug('URL - '+ url)
 
@@ -551,8 +512,8 @@ class Assets:
         duplicates = []
 
         if response.success:
-            for e in response.data[Assets.CFG['assets_key']]:
-                duplicates.append(e[Assets.CFG['path_key']])    
+            for e in response.data[keys.assets_key]:
+                duplicates.append(e[keys.path_key])    
         else:
             logging.error('Error checking if the given asset exists in DAM')
             logging.error('Failed due to : '+response.message)
@@ -565,7 +526,7 @@ class Assets:
         Find all the duplicate binaries under the given path and returns it. Returns empty if no duplicates are identified 
         '''
 
-        url = Assets.URL['duplicates'] + path
+        url = urls['duplicates'] + path
 
         logging.debug('URL - '+ url)
 
@@ -575,12 +536,12 @@ class Assets:
         removals = []
 
         if response.success:
-            for e in response.data[Assets.CFG['assets_key']]:
-                sha_val = self._metaVal(e, Assets.CFG['sha1_key'])
+            for e in response.data[keys.assets_key]:
+                sha_val = self._metaVal(e, keys.sha1_key)
                 if sha_val in duplicates:
-                    duplicates[sha_val].append(e[Assets.CFG['path_key']])
+                    duplicates[sha_val].append(e[keys.path_key])
                 else:
-                    duplicates[sha_val] = [e[Assets.CFG['path_key']]]
+                    duplicates[sha_val] = [e[keys.path_key]]
             for k in duplicates:
                 if len(duplicates[k]) <=1:
                     removals.append(k)

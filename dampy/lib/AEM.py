@@ -3,8 +3,9 @@
 import requests, json
 from requests.auth import HTTPBasicAuth
 import logging
-from dampy.Connector import Connector
-from dampy.Assets import Assets
+
+from dampy.lib.Connector import Connector
+from dampy.lib.Assets import Assets
 
 class AEM:
     '''Class abstracting an AEM instance '''

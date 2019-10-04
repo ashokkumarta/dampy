@@ -3,8 +3,9 @@
 import requests, json
 from requests.auth import HTTPBasicAuth
 import logging
-from dampy.Assets import Assets
-from dampy.Response import Response
+
+from dampy.lib.Assets import Assets
+from dampy.lib.Response import Response
 
 class Connector:
     '''
