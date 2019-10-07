@@ -15,11 +15,11 @@ Python 3
 * Get the folder tree structure of DAM / under specific path
 * Restructure the folder hierarchy in DAM
 * Upload a new asset
-* Upload a loacl folder with all its assets and subfolders to DAM
+* Upload a local folder with all its assets and subfolders to DAM
 * Download an asset from DAM
 * Download a complete folder from DAM
 * Get the metadata of assets
-* Extract specfied properties of the assets to a CSV file
+* Extract specified properties of the assets to a CSV file
 * Update properties of assets based on CSV file
 * Activate an asset or a folder
 * Activate a given list of assets and folders
@@ -157,7 +157,7 @@ __title__ – Optional title for the folder. If not provided, name of the folder
 ### createFolderTree()
 This method creates the folder tree structure in DAM, reflecting the folder structure in a local dir or in a given list. It takes in a path under which to create the folder structure, local directory path that contains the folder structure to reflect in DAM and/or an input list containing the list of folders to create 
 Parameters 
-__path__ – DAM folder under which to create the folder tree structre. Optional and defaults to /content/dam. Ignored if the folder structure or list provided starts with /content/dam/..
+__path__ – DAM folder under which to create the folder tree structure. Optional and defaults to /content/dam. Ignored if the folder structure or list provided starts with /content/dam/..
 __srcDir__ – Local folder path. The folder structure under this path is reflected in DAM
 __srcList__ – Input list of folder paths to create. Can be a list or a text file or CSV file containing the list of folder paths to create in DAM
 
