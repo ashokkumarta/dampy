@@ -35,7 +35,7 @@ def cleansePaths(dir, files, path):
         if not v.startswith('/content/dam/'):
             v = path + v
         parent, name = splitPath(v)
-        c_files[file] = parent
+        c_files[file] = namify(parent)
     return c_files
 
 def cleanseDirList(baseDir, dirList, path):

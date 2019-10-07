@@ -58,8 +58,8 @@ After the tool is installed, you can straight away start using it. All that it t
 ```
 # Getting started
 
-# Import AEM from dampy.AEM
->>> From dampy.AEM import AEM
+# Import AEM from dampy
+>>> From dampy import AEM
 
 # Create a handle to an AEM Instance
 >>> author = AEM()

@@ -11,7 +11,7 @@ if __name__== "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
 
     ## Create an AEM handle. Connects by default to localhost:4502 with admin/admin
-    aem = AEM()
+    aem = AEM("http://localhost:4502")
 
     # List all assets under a path
     logging.debug ('List all assets under a path')
