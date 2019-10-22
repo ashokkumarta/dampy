@@ -122,6 +122,51 @@ if __name__== "__main__":
     status = aem.dam.checkin('/content/dam/dampy/test/samples/Shorts_men.jpg')
     logging.debug('Status : '+str(status))
     
+    # Crop an asset in DAM
+    logging.debug ('Crop an asset')
+    status = aem.dam.crop('/content/dam/dampy/test/samples/Shorts_men.jpg', (100,100), (500,450))
+    logging.debug('Status : '+str(status))
+    
+    # Rotate an asset in DAM
+    logging.debug ('Rotate an asset')
+    status = aem.dam.rotate('/content/dam/dampy/test/samples/Shorts_men.jpg', 90)
+    logging.debug('Status : '+str(status))
+    
+    # Flip an asset in DAM horizontally
+    logging.debug ('Flipping an asset horizontally')
+    status = aem.dam.flip('/content/dam/dampy/test/samples/Shorts_men.jpg', 'h')
+    logging.debug('Status : '+str(status))
+
+    # Flip an asset in DAM vertically
+    logging.debug ('Flipping an asset vertically')
+    status = aem.dam.flip('/content/dam/dampy/test/samples/Shorts_men.jpg', 'vertical')
+    logging.debug('Status : '+str(status))
+
+    # Flip an asset in DAM both horizontally & vertically
+    logging.debug ('Flipping an asset both horizontally & vertically')
+    status = aem.dam.flip('/content/dam/dampy/test/samples/Shorts_men.jpg', 'b')
+    logging.debug('Status : '+str(status))
+
+    # Image map an asset in DAM - Circle
+    logging.debug ('Image map an asset based on data - Circle')
+    status = aem.dam.map('/content/dam/dampy/test/samples/Shorts_men.jpg', data='[circle(482,536,324)"#test_link_c"|"_blank"|"Test link Cricle"]')
+    logging.debug('Status : '+str(status))
+    
+    # Image map an asset in DAM - Rectangle
+    logging.debug ('Image map an asset based on data - Rectangle')
+    status = aem.dam.map('/content/dam/dampy/test/samples/Shorts_men.jpg', data='[rect(182,36,524,322)"#test_link_p"|"_self"|"Test link Rectangle"]')
+    logging.debug('Status : '+str(status))
+    
+    # Image map an asset in DAM - Rectangle & Circle
+    logging.debug ('Image map an asset based on data - Rectangle & Circle')
+    status = aem.dam.map('/content/dam/dampy/test/samples/Shorts_men.jpg', data='[rect(182,36,524,322)"test_link_p"|"_self"|"Test link Rectangle"][circle(482,536,324)"test_link_c"|"_blank"|"Test link Cricle"]')
+    logging.debug('Status : '+str(status))
+
+    # Edit an asset in DAM - Crop, rotate, filp and map in one go
+    logging.debug ('Edit an asset - Crop, rotate, filp and map in one go')
+    status = aem.dam.edit('/content/dam/dampy/test/samples/Shorts_men.jpg', crop='87,87,778,551', rotate='270', flip='h', map='[rect(182,36,524,322)"#test_link_p"|"_self"|"Test link Rectangle"][circle(482,536,324)"#test_link_c"|"_blank"|"Test link Cricle"]')
+    logging.debug('Status : '+str(status))
+
     # Download an asset to a local folder. By default gets downloaded to a folder named 'download'
     logging.debug ('Download an asset to a local folder')
     status = aem.dam.downloadAsset('/content/dam/dampy/test/samples/Shorts_men.jpg')

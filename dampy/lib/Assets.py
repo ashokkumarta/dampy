@@ -564,13 +564,10 @@ class Assets:
 
         logging.debug('URL - '+ url)
         logging.debug('Data - '+ str(data))
-        print('URL - '+ url)
-        print('Data - '+ str(data))
 
         response = self.conn.post(url, data = data)            
 
         if not (response.success):
-            print('Error checking out the asset')
             logging.error('Error checking out the asset')
             logging.error('Failed due to : '+response.message)
             logging.error('Check if the asset exists and is not locked')
@@ -583,3 +580,114 @@ class Assets:
         '''
         return self.checkout(path, action='checkin')
 
+    def edit(self, path, crop='', rotate='', flip='', map=''):
+        '''
+        Edit an asset in DAM.
+        Support cropping, rotating, flipping and mapping of the asset in DAM
+        '''
+
+        url =  path + urls['edit']
+        data = msgs['edit']
+
+        data = data.replace('$crop', crop)
+        data = data.replace('$rotate', rotate)
+        flipHorizontal = ''
+        flipVertical = ''
+        if flip in ('h', 'b', 'horizontal', 'both'):
+            flipHorizontal = 'fliphorizontal'
+        if flip in ('v', 'b', 'vertical', 'both'):
+            flipVertical = 'flipvertical'
+            
+        data = data.replace('$flipHorizontal', flipHorizontal)
+        data = data.replace('$flipVertical', flipVertical) 
+
+        data = json.loads(data)
+
+        data['./imageMap'] = map
+
+        logging.debug('URL - '+ url)
+        logging.debug('Data - '+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not (response.success):
+            logging.error('Error editing the asset')
+            logging.error('Failed due to : '+response.message)
+            logging.error('Check if the asset exists and is not checked out by someone else')
+        return response.success
+
+    def crop(self, path, top_left, bottom_right):
+        '''
+        Crop an asset in DAM.
+        '''
+
+        if not (top_left or bottom_right):
+            logging.error('Top left and bottom right parameter mandatory to crop an asset')
+            return False
+
+        if (len(top_left) != 2) or (len(bottom_right) != 2): 
+            logging.error('Invalid values for top left or bottom right parameters')
+            return False
+
+        if not (isinstance(top_left[0], int) and isinstance(top_left[1], int)  and isinstance(bottom_right[0], int) and isinstance(bottom_right[1], int)): 
+            logging.error('Invalid values for top left or bottom right parameters')
+            return False
+
+        crop_str =  ','.join(str(x) for x in (top_left + bottom_right))
+
+        return self.edit(path, crop=crop_str)
+
+    def rotate(self, path, angle):
+        '''
+        Rotate an asset in DAM.
+        '''
+
+        if not angle:
+            logging.error('Angle parameter mandatory to rotate an asset')
+            return False
+
+        if not isinstance(angle, int): 
+            logging.error('Invalid values for angle parameter')
+            return False
+
+        return self.edit(path, rotate=str(angle))
+
+    def flip(self, path, type):
+        '''
+        Flip an asset in DAM horizontally or veritcally
+        Set type to 'h' or 'horizontal' to flip the asset horizontally
+        Set type to 'v' or 'vertical' to flip the asset vertically
+        Set type to 'b' or 'both' to flip the asset both horizontally and vertically
+        '''
+
+        if not type:
+            logging.error('type parameter mandatory to flip an asset')
+            return False
+
+        if not type in ('h', 'v', 'b', 'horizontal', 'vertical', 'both'): 
+            logging.error('Invalid values for type parameter')
+            return False
+
+        return self.edit(path, flip=type)
+
+    def map(self, path, data):
+        '''
+        Image map an asset in DAM based on the data
+        '''
+
+        if not data:
+            logging.error('data parameter mandatory to image map an asset')
+            return False
+
+        return self.edit(path, map=data)
+
+    def getMapData(self, currentMap='', type='rect', dimension=(0,0,100,100), link='#', alt='Click', target='_self'):
+        '''
+        From map data based on input parameters, add it to current map data supplied and return it
+        '''
+    
+        mapData = '[' + type + str(dimension) + '\"' + link +'\"|\"' + target + '\"|\"' + alt + '\"]'
+
+        return currentMap + mapData
+
+    

@@ -29,6 +29,8 @@ Python 3
 * Delete a given list of assets and folders
 * Check if an asset already exists in DAM and the path(s) at which its present
 * Report all duplicate assets in DAM / under a path 
+* Check-out and Check-in an asset in DAM / under a path 
+* Edit an asset in DAM / under a path (crop, rotate, flip, map)
 
 
 ## About the tool
@@ -531,6 +533,118 @@ This method returns a Boolean value indicating the success status
 
 ```
 
+### crop()
+This method crops the given asset in DAM. It takes in three mandatory parameters
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be cropped
+__top_left__ – Mandatory parameter specifying the top left position as tuple indicating the start of crop position
+__bottom_right__ – Mandatory parameter specifying the bottom right position as tuple indicating the end of crop position
+
+This method returns a Boolean value indicating the success status
+
+```
+# Crop the given asset in DAM
+>>> status = aem.dam.crop((‘/content/dam/my_folder/dampy_sample.png’, (87, 49), (547,331))
+
+```
+
+### rotate()
+This method crops the given asset in DAM. It takes in two mandatory parameters
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be rotated
+__angle__ – Mandatory parameter specifying the angle by which the asset needs to be rotated
+
+This method returns a Boolean value indicating the success status
+
+```
+# Rotate the given asset in DAM
+>>> status = aem.dam.rotate((‘/content/dam/my_folder/dampy_sample.png’, 90)
+
+```
+
+### flip()
+This method flips the given asset in DAM horizontally or vertically or both ways. It takes in two mandatory parameters
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be flipped
+__type__ – Mandatory parameter specifying the type of flip to be performed. Value of 'h' or 'horizontal' flips the asset horizontally. Value of 'v' or 'vertical' flips the asset vartically. Value of 'b' or 'both' flips the asset both ways
+
+This method returns a Boolean value indicating the success status
+
+```
+# Flip the given asset in DAM horizontally
+>>> status = aem.dam.flip((‘/content/dam/my_folder/dampy_sample.png’, 'h')
+
+# Flip the given asset in DAM vertically
+>>> status = aem.dam.flip((‘/content/dam/my_folder/dampy_sample.png’, 'vertical')
+
+# Flip the given asset in DAM both ways
+>>> status = aem.dam.flip((‘/content/dam/my_folder/dampy_sample.png’, 'both')
+
+```
+
+### map()
+This method adds image map to the given asset in DAM. It takes in two mandatory parameters
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be mapped
+__data__ – Mandatory parameter specifying the data with which the image map is built
+
+This method returns a Boolean value indicating the success status
+
+```
+# Map the given asset in DAM with the circular image map
+>>> status = aem.dam.map((‘/content/dam/my_folder/dampy_sample.png’, data='[circle(482,536,324)"#test_link_c"|"_blank"|"Test link Cricle"]')
+
+# Map the given asset in DAM with the rectangle image map
+>>> status = aem.dam.map((‘/content/dam/my_folder/dampy_sample.png’, data='[rect(182,36,524,322)"#test_link_p"|"_self"|"Test link Rectangle"]')
+
+# Map the given asset in DAM with a circle and a rectangle image map
+>>> status = aem.dam.map((‘/content/dam/my_folder/dampy_sample.png’, data='[rect(182,36,524,322)"test_link_p"|"_self"|"Test link Rectangle"][circle(482,536,324)"test_link_c"|"_blank"|"Test link Cricle"]')
+
+```
+
+### getMapData()
+A utility method that returns the image map data string based on input parameters. It takes in the following parameters
+
+__currentMap__ – Image map string to which the new map data needs to be appended to. Defaults to ''
+__type__ – Type of the image map. Can be 'circle' or 'rect'. Defaults to 'rect'
+__dimension__ – Dimension for the type of image map. Defaults to (0,0,100,100) for the default 'rect' type
+__link__ – Link pointed to by the image map. Defaults to '#'
+__alt__ – Alt text for the image map. Defaults to 'Click'
+__target__ – Target window for the image map. Can be '_self' or '_parent' or '_blank'. Defaults to '_self'
+
+
+This method returns string representation for the image map data
+
+```
+# Get map data for a circle image map
+>>> status = aem.dam.getMapData(type='circle', dimension=(482,536,324), link='test_link_c', alt='Test link Cricle', target='_blank')
+
+'[circle(482,536,324)"test_link_c"|"_blank"|"Test link Cricle"]'
+
+# Get map data for the default rectangle image map
+>>> status = aem.dam.getMapData()
+
+'[rect(0, 0, 100, 100)"#"|"_self"|"Click"]'
+
+```
+
+### edit()
+This method edits an asset asset in DAM. This method can be used to do one of more of cropping, rotating, flipping and applying map to an asset in one go.  
+It takes in two mandatory parameters
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be edited
+__corp__ – Crop value to be applied on the asset if applicable
+__rotate__ – Angle to rotate the asset if applicable 
+__flip__ – Vertical and/or horizontal flip to be applied on the asset if needed
+__map__ – Map data to be applied on the asset if needed
+
+This method returns a Boolean value indicating the success status
+
+```
+# Edit an asset in DAM applying crop, rotate, filp and map - all in one go
+>>> status = aem.dam.edit('/content/dam/dampy/test/samples/Shorts_men.jpg', crop='87,87,778,551', rotate='270', flip='h', map='[rect(182,36,524,322)"#test_link_p"|"_self"|"Test link Rectangle"][circle(482,536,324)"#test_link_c"|"_blank"|"Test link Cricle"]')
+
+```
 
 ## Reservation
 > Though this is a generic utility, they have been tested for limited set of use cases. Make sure its tested for your scenarios before applying it for production purpose
