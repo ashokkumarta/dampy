@@ -15,6 +15,7 @@
         "activate": "/bin/replicate.json",
         "deactivate": "/bin/replicate.json",
         "checkout": ".checkout.json",
+        "edit": ".assetimage.html",
         "move": "/bin/wcmcommand",
         "updateFolderTitle": "/content/dam",
         "delete": "/bin/wcmcommand",
@@ -32,6 +33,7 @@
         "deactivate" : "{\"cmd\": \"Deactivate\", \"path\":\"$path\", \"force\":\"force\"}",
         "checkout" : "{\"action\": \"checkout\"}",
         "checkin" : "{\"action\": \"checkin\"}",
+        "edit" : "{\"./crop\": \"$crop\", \"./rotate\": \"$rotate\", \"./flipHorizontal\": \"$flipHorizontal\", \"./flipVertical\": \"$flipVertical\", \"./imageMap\": \"$imageMap\"}",
         "uprops" : "[(\"_charset_\", \"utf-8\"), (\"dam:bulkUpdate\", \"true\"), (\"mode\", \"hard\")]"
 
     }
