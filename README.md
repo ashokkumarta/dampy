@@ -505,6 +505,31 @@ __path__ – Path under which the check is done to identify duplicates
 
 ```
 
+### checkout()
+This method checks out the given asset in DAM. It takes in one mandatory path parameter 
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be checked out
+
+This method returns a Boolean value indicating the success status
+
+```
+# checks out the given asset in DAM
+>>> status = aem.dam.checkout((‘/content/dam/my_folder/dampy_sample.png’)
+
+```
+
+### checkin()
+This method checks in the given asset in DAM. It takes in one mandatory path parameter 
+
+__path__ – Mandatory parameter specifying the path to the asset that needs to be checked in
+
+This method returns a Boolean value indicating the success status
+
+```
+# checks in the given asset in DAM
+>>> status = aem.dam.checkin((‘/content/dam/my_folder/dampy_sample.png’)
+
+```
 
 
 ## Reservation
@@ -512,3 +537,4 @@ __path__ – Path under which the check is done to identify duplicates
 
 ---
 > Environments Tested on:  AEM 6.1, 6.2 & 6.4 | Windows, RHEL5 | Python 3.7.2
+

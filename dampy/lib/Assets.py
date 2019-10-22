@@ -554,3 +554,32 @@ class Assets:
 
         return duplicates
 
+    def checkout(self, path, action='checkout'):
+        '''
+        Check-out/check-in an asset in DAM
+        '''
+
+        url =  path + urls['checkout']
+        data = json.loads(msgs[action])
+
+        logging.debug('URL - '+ url)
+        logging.debug('Data - '+ str(data))
+        print('URL - '+ url)
+        print('Data - '+ str(data))
+
+        response = self.conn.post(url, data = data)            
+
+        if not (response.success):
+            print('Error checking out the asset')
+            logging.error('Error checking out the asset')
+            logging.error('Failed due to : '+response.message)
+            logging.error('Check if the asset exists and is not locked')
+        return response.success
+
+    def checkin(self, path):
+        '''
+        Check-in an asset in DAM. Calls checkout method with action param as 'checkin' to 
+        accomplish the task
+        '''
+        return self.checkout(path, action='checkin')
+
