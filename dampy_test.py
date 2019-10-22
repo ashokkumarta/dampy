@@ -112,6 +112,16 @@ if __name__== "__main__":
     status = aem.dam.uploadFolder(dir='upload/products', path='/content/dam/dampy/test/samples')
     logging.debug('Status : '+str(status))
 
+    # Checkout an asset in DAM
+    logging.debug ('Checkout an asset')
+    status = aem.dam.checkout('/content/dam/dampy/test/samples/Shorts_men.jpg')
+    logging.debug('Status : '+str(status))
+    
+    # Checkin an asset in DAM
+    logging.debug ('Checkin an asset')
+    status = aem.dam.checkin('/content/dam/dampy/test/samples/Shorts_men.jpg')
+    logging.debug('Status : '+str(status))
+    
     # Download an asset to a local folder. By default gets downloaded to a folder named 'download'
     logging.debug ('Download an asset to a local folder')
     status = aem.dam.downloadAsset('/content/dam/dampy/test/samples/Shorts_men.jpg')
