@@ -1,10 +1,12 @@
 
 ![Demo](dampy-logo.png)
-A command line interface for Adobe Experience Manager - DAM
+<br/>A command line interface for Adobe Experience Manager - DAM
 
 <hr/>
 
-An utility to easily work with Adobe Experience Manager (AEM) DAM. 
+DamPy is essentially a command line tool for working with Adobe Experience Manager (AEM) Digital Assets (DAM). Its purpose if two fold:
+* To provide a command line interface to access all DAM functionalities
+* To provide a comprehensive Python API to perform all operations on assets in AEM
 
 ## Dependencies
 ```
