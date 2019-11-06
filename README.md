@@ -1,7 +1,7 @@
 
 ![Demo](dampy-logo.png)
 
-_A command line interface for **Adobe Experience Manager (AEM) - DAM**_
+*A command line interface for **Adobe Experience Manager (AEM) - DAM***
 
 <hr/>
 
