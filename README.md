@@ -1,4 +1,11 @@
 # DamPy							
+
+<span><i>"The CLI for AEM DAM"</i></span>
+
+!dampy-logo.png)
+
+<hr/>
+
 An utility to easily work with Adobe Experience Manager (AEM) DAM. 
 
 ## Dependencies
