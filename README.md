@@ -1,5 +1,5 @@
 
-![Demo](dampy-logo.png)
+![](dampy-logo.png)
 
 *A command line interface for **Adobe Experience Manager (AEM) - DAM***
 
@@ -55,7 +55,6 @@ After dabbling with curls, AEM reports and WebDAV tools, I came to realize that 
 **DamPy** is a consolidation of many such scripts written into a comprehensive tool to work with AEM DAM 
 
 
-[Demo]
 ## Getting Started
 **DamPy** is available as pip install. To start working on this tool install it through pip command
 
