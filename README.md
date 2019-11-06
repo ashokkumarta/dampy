@@ -5,7 +5,7 @@
 
 <hr/>
 
-DamPy is essentially a command line tool for working with Adobe Experience Manager (AEM) Digital Assets (DAM). Its purpose if two fold:
+**DamPy** is essentially a command line tool for working with Adobe Experience Manager (AEM) Digital Assets (DAM). Its purpose if two fold:
 * To provide a command line interface to access all DAM functionalities
 * To provide a comprehensive Python API to perform all operations on assets in AEM
 
@@ -42,7 +42,7 @@ Python 3
 
 
 ## About the tool
-DamPy is a tool to work with AEM DAM. For a client I recently work with, as we went live the client team had frequent requests to
+**DamPy** is a tool to work with AEM DAM. For a client I recently work with, as we went live the client team had frequent requests to
 * Get a list of all the assets under a path 
 * Download all assets under a path
 * Upload assets organized in the local folder structure to DAM
@@ -52,12 +52,12 @@ DamPy is a tool to work with AEM DAM. For a client I recently work with, as we w
 
 After dabbling with curls, AEM reports and WebDAV tools, I came to realize that writing Python scripts to make REST API calls to AEM and/or convert the result JSON into required output format to be the quickest and easiest option to handle these requests. 
 
-DamPy is a consolidation of many such scripts written into a comprehensive tool to work with AEM DAM 
+**DamPy** is a consolidation of many such scripts written into a comprehensive tool to work with AEM DAM 
 
 
 [Demo]
 ## Getting Started
-DamPy is available as pip install. To start working on this tool install it through pip command
+**DamPy** is available as pip install. To start working on this tool install it through pip command
 
 ```
 pip install dampy
@@ -84,13 +84,13 @@ As you can see, three lines is all it takes to get a list of all assets in DAM
 2.	Create an instance of AEM
 3.	Call the list method 
 
-__Note:__ By default, DamPy connects to AEM Author instance running locally with admin/admin as credentials. Keep your local AEM instance running when trying the above snippet. 
+__Note:__ By default, **DamPy** connects to AEM Author instance running locally with admin/admin as credentials. Keep your local AEM instance running when trying the above snippet. 
 
 ## DamPy in-depth
-The following sections explains in-depth the functionalities and technical details of DamPy tool
+The following sections explains in-depth the functionalities and technical details of **DamPy** tool
 
 ### Creating an AEM handle
-The first step in working with DamPy is to create an AEM handle. To create an AEM handle, import AEM from dampy and create an instance of it. Below code snippet shows various options to create an AEM handle
+The first step in working with **DamPy** is to create an AEM handle. To create an AEM handle, import AEM from dampy and create an instance of it. Below code snippet shows various options to create an AEM handle
 
 ```
 >>> From dampy import AEM
@@ -114,7 +114,7 @@ __password__ – defaults to ‘admin’
 You can pass in none, all three, or some of these parameters to create an AEM handle
 
 ### The dam object in AEM handle
-The AEM handle includes a dam object wrapped within it and all functionalities of DamPy are exposed as methods on this dam object. The signature for invoking any method on dam looks like this
+The AEM handle includes a dam object wrapped within it and all functionalities of **DamPy** are exposed as methods on this dam object. The signature for invoking any method on dam looks like this
 
 ```
 >>> aem.dam.<api>(<params...>)
