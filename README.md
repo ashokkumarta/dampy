@@ -2,6 +2,7 @@
 
 <span><i>"The CLI for AEM DAM"</i></span>
 
+![Demo](dampy-logo.png)
 !(dampy-logo.png)
 
 <hr/>
