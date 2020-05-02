@@ -5,9 +5,9 @@ with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 setup(
-  name = 'dampy',        
-  packages = ['dampy'],  
-  version = '0.8',      
+  name = 'DamPy',        
+  packages = ['dampy', 'dampy.lib'],  
+  version = '0.12',
   license='MIT', 
   description = 'A python tool to easily work with Adobe Experience Manager (AEM) DAM. ',   
   long_description_content_type='text/markdown',
@@ -15,7 +15,6 @@ setup(
   author = 'Ashokkumar T.A',                  
   author_email = 'ashokkumar.ta@gmail.com',   
   url = 'https://github.com/ashokkumarta/dampy',   
-  download_url = 'https://github.com/ashokkumarta/dampy/archive/0.6.tar.gz', 
   keywords = ['AEM', 'DAM', 'Python tool', 'list', 'create', 'upload', 'download', 'activate', 'deactivate', 'delete'],   
   install_requires=[  
       'requests',          

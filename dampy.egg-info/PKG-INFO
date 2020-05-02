@@ -1,14 +1,21 @@
 Metadata-Version: 2.1
-Name: dampy
-Version: 0.8
+Name: DamPy
+Version: 0.11
 Summary: A python tool to easily work with Adobe Experience Manager (AEM) DAM. 
 Home-page: https://github.com/ashokkumarta/dampy
 Author: Ashokkumar T.A
 Author-email: ashokkumar.ta@gmail.com
 License: MIT
-Download-URL: https://github.com/ashokkumarta/dampy/archive/0.6.tar.gz
-Description: # dampy							
-        An utility to easily work with Adobe Experience Manager (AEM) DAM. 
+Description: 
+        ![](dampy-logo.png)
+        
+        *A command line interface for **Adobe Experience Manager (AEM) - DAM***
+        
+        <hr/>
+        
+        **DamPy** is essentially a command line tool for working with Adobe Experience Manager (AEM) Digital Assets (DAM). Its purpose if two fold:
+        * To provide a command line interface to access all DAM functionalities
+        * To provide a comprehensive Python API to perform all operations on assets in AEM
         
         ## Dependencies
         ```
@@ -24,11 +31,11 @@ Description: # dampy
         * Get the folder tree structure of DAM / under specific path
         * Restructure the folder hierarchy in DAM
         * Upload a new asset
-        * Upload a loacl folder with all its assets and subfolders to DAM
+        * Upload a local folder with all its assets and subfolders to DAM
         * Download an asset from DAM
         * Download a complete folder from DAM
         * Get the metadata of assets
-        * Extract specfied properties of the assets to a CSV file
+        * Extract specified properties of the assets to a CSV file
         * Update properties of assets based on CSV file
         * Activate an asset or a folder
         * Activate a given list of assets and folders
@@ -38,10 +45,12 @@ Description: # dampy
         * Delete a given list of assets and folders
         * Check if an asset already exists in DAM and the path(s) at which its present
         * Report all duplicate assets in DAM / under a path 
+        * Check-out and Check-in an asset in DAM / under a path 
+        * Edit an asset in DAM / under a path (crop, rotate, flip, map)
         
         
         ## About the tool
-        dampy is a tool to work with AEM DAM. For a client I recently work with, as we went live the client team had frequent requests to
+        **DamPy** is a tool to work with AEM DAM. For a client I recently work with, as we went live the client team had frequent requests to
         * Get a list of all the assets under a path 
         * Download all assets under a path
         * Upload assets organized in the local folder structure to DAM
@@ -51,11 +60,11 @@ Description: # dampy
         
         After dabbling with curls, AEM reports and WebDAV tools, I came to realize that writing Python scripts to make REST API calls to AEM and/or convert the result JSON into required output format to be the quickest and easiest option to handle these requests. 
         
-        dampy is a consolidation of many such scripts written into a comprehensive tool to work with AEM DAM 
+        **DamPy** is a consolidation of many such scripts written into a comprehensive tool to work with AEM DAM 
         
         
         ## Getting Started
-        dampy is available as pip install. To start working on this tool install it through pip command
+        **DamPy** is available as pip install. To start working on this tool install it through pip command
         
         ```
         pip install dampy
@@ -67,8 +76,8 @@ Description: # dampy
         ```
         # Getting started
         
-        # Import AEM from dampy.AEM
-        >>> From dampy.AEM import AEM
+        # Import AEM from dampy
+        >>> From dampy import AEM
         
         # Create a handle to an AEM Instance
         >>> author = AEM()
@@ -78,20 +87,20 @@ Description: # dampy
         ```
         
         As you can see, three lines is all it takes to get a list of all assets in DAM
-        1.	Import AEM from dampy.AEM
+        1.	Import AEM from dampy
         2.	Create an instance of AEM
         3.	Call the list method 
         
-        __Note:__ By default, dampy connects to AEM Author instance running locally with admin/admin as credentials. Keep your local AEM instance running when trying the above snippet. 
+        __Note:__ By default, **DamPy** connects to AEM Author instance running locally with admin/admin as credentials. Keep your local AEM instance running when trying the above snippet. 
         
-        ## dampy in-depth
-        The following sections explains in-depth the functionalities and technical details of dampy tool
+        ## DamPy in-depth
+        The following sections explains in-depth the functionalities and technical details of **DamPy** tool
         
         ### Creating an AEM handle
-        The first step in working with dampy is to create an AEM handle. To create an AEM handle, import AEM from dampy.AEM and create an instance of it. Below code snippet shows various options to create an AEM handle
+        The first step in working with **DamPy** is to create an AEM handle. To create an AEM handle, import AEM from dampy and create an instance of it. Below code snippet shows various options to create an AEM handle
         
         ```
-        >>> From dampy.AEM import AEM
+        >>> From dampy import AEM
         # Different options for creating AEM handle
         # Create AEM handle to default AEM instance
         >>> aem = AEM()
@@ -112,7 +121,7 @@ Description: # dampy
         You can pass in none, all three, or some of these parameters to create an AEM handle
         
         ### The dam object in AEM handle
-        The AEM handle includes a dam object wrapped within it and all functionalities of dampy are exposed as methods on this dam object. The signature for invoking any method on dam looks like this
+        The AEM handle includes a dam object wrapped within it and all functionalities of **DamPy** are exposed as methods on this dam object. The signature for invoking any method on dam looks like this
         
         ```
         >>> aem.dam.<api>(<params...>)
@@ -166,7 +175,7 @@ Description: # dampy
         ### createFolderTree()
         This method creates the folder tree structure in DAM, reflecting the folder structure in a local dir or in a given list. It takes in a path under which to create the folder structure, local directory path that contains the folder structure to reflect in DAM and/or an input list containing the list of folders to create 
         Parameters 
-        __path__ â€“ DAM folder under which to create the folder tree structre. Optional and defaults to /content/dam. Ignored if the folder structure or list provided starts with /content/dam/..
+        __path__ â€“ DAM folder under which to create the folder tree structure. Optional and defaults to /content/dam. Ignored if the folder structure or list provided starts with /content/dam/..
         __srcDir__ â€“ Local folder path. The folder structure under this path is reflected in DAM
         __srcList__ â€“ Input list of folder paths to create. Can be a list or a text file or CSV file containing the list of folder paths to create in DAM
         
@@ -514,13 +523,151 @@ Description: # dampy
         
         ```
         
+        ### checkout()
+        This method checks out the given asset in DAM. It takes in one mandatory path parameter 
         
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be checked out
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # checks out the given asset in DAM
+        >>> status = aem.dam.checkout((â€˜/content/dam/my_folder/dampy_sample.pngâ€™)
+        
+        ```
+        
+        ### checkin()
+        This method checks in the given asset in DAM. It takes in one mandatory path parameter 
+        
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be checked in
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # checks in the given asset in DAM
+        >>> status = aem.dam.checkin((â€˜/content/dam/my_folder/dampy_sample.pngâ€™)
+        
+        ```
+        
+        ### crop()
+        This method crops the given asset in DAM. It takes in three mandatory parameters
+        
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be cropped
+        __top_left__ â€“ Mandatory parameter specifying the top left position as tuple indicating the start of crop position
+        __bottom_right__ â€“ Mandatory parameter specifying the bottom right position as tuple indicating the end of crop position
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # Crop the given asset in DAM
+        >>> status = aem.dam.crop((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, (87, 49), (547,331))
+        
+        ```
+        
+        ### rotate()
+        This method crops the given asset in DAM. It takes in two mandatory parameters
+        
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be rotated
+        __angle__ â€“ Mandatory parameter specifying the angle by which the asset needs to be rotated
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # Rotate the given asset in DAM
+        >>> status = aem.dam.rotate((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, 90)
+        
+        ```
+        
+        ### flip()
+        This method flips the given asset in DAM horizontally or vertically or both ways. It takes in two mandatory parameters
+        
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be flipped
+        __type__ â€“ Mandatory parameter specifying the type of flip to be performed. Value of 'h' or 'horizontal' flips the asset horizontally. Value of 'v' or 'vertical' flips the asset vartically. Value of 'b' or 'both' flips the asset both ways
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # Flip the given asset in DAM horizontally
+        >>> status = aem.dam.flip((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, 'h')
+        
+        # Flip the given asset in DAM vertically
+        >>> status = aem.dam.flip((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, 'vertical')
+        
+        # Flip the given asset in DAM both ways
+        >>> status = aem.dam.flip((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, 'both')
+        
+        ```
+        
+        ### map()
+        This method adds image map to the given asset in DAM. It takes in two mandatory parameters
+        
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be mapped
+        __data__ â€“ Mandatory parameter specifying the data with which the image map is built
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # Map the given asset in DAM with the circular image map
+        >>> status = aem.dam.map((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, data='[circle(482,536,324)"#test_link_c"|"_blank"|"Test link Cricle"]')
+        
+        # Map the given asset in DAM with the rectangle image map
+        >>> status = aem.dam.map((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, data='[rect(182,36,524,322)"#test_link_p"|"_self"|"Test link Rectangle"]')
+        
+        # Map the given asset in DAM with a circle and a rectangle image map
+        >>> status = aem.dam.map((â€˜/content/dam/my_folder/dampy_sample.pngâ€™, data='[rect(182,36,524,322)"test_link_p"|"_self"|"Test link Rectangle"][circle(482,536,324)"test_link_c"|"_blank"|"Test link Cricle"]')
+        
+        ```
+        
+        ### getMapData()
+        A utility method that returns the image map data string based on input parameters. It takes in the following parameters
+        
+        __currentMap__ â€“ Image map string to which the new map data needs to be appended to. Defaults to ''
+        __type__ â€“ Type of the image map. Can be 'circle' or 'rect'. Defaults to 'rect'
+        __dimension__ â€“ Dimension for the type of image map. Defaults to (0,0,100,100) for the default 'rect' type
+        __link__ â€“ Link pointed to by the image map. Defaults to '#'
+        __alt__ â€“ Alt text for the image map. Defaults to 'Click'
+        __target__ â€“ Target window for the image map. Can be '_self' or '_parent' or '_blank'. Defaults to '_self'
+        
+        
+        This method returns string representation for the image map data
+        
+        ```
+        # Get map data for a circle image map
+        >>> status = aem.dam.getMapData(type='circle', dimension=(482,536,324), link='test_link_c', alt='Test link Cricle', target='_blank')
+        
+        '[circle(482,536,324)"test_link_c"|"_blank"|"Test link Cricle"]'
+        
+        # Get map data for the default rectangle image map
+        >>> status = aem.dam.getMapData()
+        
+        '[rect(0, 0, 100, 100)"#"|"_self"|"Click"]'
+        
+        ```
+        
+        ### edit()
+        This method edits an asset asset in DAM. This method can be used to do one of more of cropping, rotating, flipping and applying map to an asset in one go.  
+        It takes in two mandatory parameters
+        
+        __path__ â€“ Mandatory parameter specifying the path to the asset that needs to be edited
+        __corp__ â€“ Crop value to be applied on the asset if applicable
+        __rotate__ â€“ Angle to rotate the asset if applicable 
+        __flip__ â€“ Vertical and/or horizontal flip to be applied on the asset if needed
+        __map__ â€“ Map data to be applied on the asset if needed
+        
+        This method returns a Boolean value indicating the success status
+        
+        ```
+        # Edit an asset in DAM applying crop, rotate, filp and map - all in one go
+        >>> status = aem.dam.edit('/content/dam/dampy/test/samples/Shorts_men.jpg', crop='87,87,778,551', rotate='270', flip='h', map='[rect(182,36,524,322)"#test_link_p"|"_self"|"Test link Rectangle"][circle(482,536,324)"#test_link_c"|"_blank"|"Test link Cricle"]')
+        
+        ```
         
         ## Reservation
         > Though this is a generic utility, they have been tested for limited set of use cases. Make sure its tested for your scenarios before applying it for production purpose
         
         ---
         > Environments Tested on:  AEM 6.1, 6.2 & 6.4 | Windows, RHEL5 | Python 3.7.2
+        
         
 Keywords: AEM,DAM,Python tool,list,create,upload,download,activate,deactivate,delete
 Platform: UNKNOWN
