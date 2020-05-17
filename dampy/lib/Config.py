@@ -3,32 +3,51 @@ import logging
 
 class _Config:
 
-    def _load(self):
-        'Loads the config file and returns json object'
-        config_file = 'config/config.json'
-        logging.debug('Checking configuration file...')
-        try: 
-            config_file = os.environ['CONFIG_FILE']
-        except:
-            logging.debug('Config file path not defined. Loading the default config file')
-        
-        config=open(config_file).read()
-        logging.debug('configuration parameters:\n'+config)
-        self._config_json = json.loads(config)
-
     def __getitem__(self, key):
-        if self._mode:
-            return self._config_json[self._mode][key]
         return self._config_json[key]
 
     def __getattr__(self, attr):
         return self.__getitem__(attr)
 
-    def __init__(self, mode=None):
+    def __init__(self, config_json):
         logging.debug('Loading the configuration')
-        self._load()
-        self._mode = mode
+        self._config_json = config_json
 
-keys = _Config('keys')
-urls = _Config('urls')
-msgs = _Config('msgs')
+keys = _Config({
+    "assets_key": "hits",
+    "path_key": "jcr:path", 
+    "sha1_key": "jcr:content/metadata/dam:sha1"
+})
+
+urls = _Config({
+    "list": "/bin/querybuilder.json?type=dam:Asset&p.limit=-1&p.hits=selective&p.properties=jcr:path&p.nodedepth=-1&path=",
+    "xprops": "/bin/querybuilder.json?type=dam:Asset&p.limit=-1&p.hits=selective&p.properties=$props&p.nodedepth=-1&path=",
+    "fetchFolderTree": "/bin/querybuilder.json?type=sling:Folder&p.limit=-1&p.hits=selective&p.properties=$props&p.nodedepth=-1&path=",
+    "uprops": "/content/dam.html",
+    "metadata_suffix": "/jcr:content.",
+    "metadata_type": ".json",
+    "activate": "/bin/replicate.json",
+    "deactivate": "/bin/replicate.json",
+    "checkout": ".checkout.json",
+    "edit": ".assetimage.html",
+    "move": "/bin/wcmcommand",
+    "updateFolderTitle": "/content/dam",
+    "delete": "/bin/wcmcommand",
+    "exists": "/bin/querybuilder.json?p.hits=selective&path=/content/dam&p.properties=jcr:path&p.limit=-1&property=jcr:content/metadata/dam:sha1&property.operation=equals&property.value=",
+    "duplicates": "/bin/querybuilder.json?p.hits=selective&p.properties=jcr:path jcr:content/metadata/dam:sha1&p.limit=-1&property=jcr:content/metadata/dam:sha1&property.operation=exists&path=",
+    "activateTree": "/libs/replication/treeactivation.html"
+})
+
+msgs = _Config({
+    "createFolder" : "{\"./jcr:primaryType\": \"sling:OrderedFolder\", \"./jcr:content/jcr:primaryType\": \"nt:unstructured\", \"./jcr:content/jcr:title\":\"$title\", \":name\":\"$name\" }",
+    "move" : "{\"cmd\": \"movePage\", \"integrity\": \"true\", \"srcPath\":\"$srcPath\", \"destParentPath\":\"$destParentPath\", \"destName\":\"$destName\" }",
+    "updateFolderTitle" : "{\":operation\": \"dam.share.folder\", \"path\":\"$path\",            \"title\":\"$title\" }",
+    "delete" : "{\"cmd\": \"deletePage\", \"path\":\"$path\", \"force\":\"force\"}",
+    "activate" : "{\"cmd\": \"Activate\", \"path\":\"$path\", \"force\":\"force\"}",
+    "deactivate" : "{\"cmd\": \"Deactivate\", \"path\":\"$path\", \"force\":\"force\"}",
+    "checkout" : "{\"action\": \"checkout\"}",
+    "checkin" : "{\"action\": \"checkin\"}",
+    "edit" : "{\"./crop\": \"$crop\", \"./rotate\": \"$rotate\", \"./flipHorizontal\": \"$flipHorizontal\", \"./flipVertical\": \"$flipVertical\", \"./imageMap\": \"$imageMap\"}",
+    "uprops" : "[(\"_charset_\", \"utf-8\"), (\"dam:bulkUpdate\", \"true\"), (\"mode\", \"hard\")]"
+
+})

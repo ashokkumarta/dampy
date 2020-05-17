@@ -7,7 +7,7 @@ with open('README.md', 'r') as fh:
 setup(
   name = 'DamPy',        
   packages = ['dampy', 'dampy.lib'],  
-  version = '0.12',
+  version = '0.12.9',
   license='MIT', 
   description = 'A python tool to easily work with Adobe Experience Manager (AEM) DAM. ',   
   long_description_content_type='text/markdown',
