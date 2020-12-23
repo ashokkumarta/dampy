@@ -655,7 +655,7 @@ This method returns a Boolean value indicating the success status
 ```
 
 ## Reservation
-> Though this is a generic utility, they have been tested for limited set of use cases. Make sure its tested for your scenarios before applying it for production purpose
+> Though this is a generic utility, it has been tested for limited set of use cases. Make sure its tested for your scenarios before applying it for production purpose
 
 ---
 > Environments Tested on:  AEM 6.1, 6.2 & 6.4 | Windows, RHEL5 | Python 3.7.2
